@@ -1,0 +1,29 @@
+{
+  "name": "qb",
+  "version": "0.0.0",
+  "description": "Define models and associations and let your QB write your SQL.",
+  "main": "qb.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jtschoonhoven/qb"
+  },
+  "keywords": [
+    "sql",
+    "postgresql",
+    "postgres",
+    "mysql",
+    "sqlite"
+  ],
+  "author": "jtschoonhoven",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jtschoonhoven/qb/issues"
+  },
+  "homepage": "https://github.com/jtschoonhoven/qb",
+  "dependencies": {
+    "sql": "0.*"
+  }
+}
