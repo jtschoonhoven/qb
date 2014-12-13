@@ -5,27 +5,33 @@ var sql = require('sql')
 // Read model definitions from file.
 var associations = require('./example-models.js');
 
-// An array of each model name.
-var modelNames = Object.keys(associations);
 
 // An object to hold each SQL model definition.
-var models = {};
+var db = {};
 
-// modelNames.forEach(function(modelName) {
-// 	models[modelName] = sql.define(associations)
-// });
 
+// For each model defined in associations...
 for (var key in associations) {
 	var model = associations[key];
+
+	// Set the primary key to "id" unless otherwise defined.
+	model.primary_key = model.primary_key || 'id';
+
+	// Call sql.define() on each model and add to db object.
+	db[key] = sql.define(model);
 }
 
-// var user = sql.define({
-//   name: "user",
-//   columns: [{
-//       name: "id"
-//     }, {
-//       name: "state_or_province",
-//       property: "state"
-//     }
-//   ]
-// });
+
+var qb = {
+	model: 'user',
+	select: ['Join date'],
+};
+
+
+var model = db[qb.model];
+var select = db.user[qb.select];
+var from = db[qb.model];
+
+
+// var query = model.select(select).from(from).toQuery();
+// console.log(query.text);

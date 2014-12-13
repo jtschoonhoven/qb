@@ -2,9 +2,10 @@ module.exports = {
 
 	user: {
 		alias: "user",
-		table: "users",
+		name: "users",
 		columns: [
-			{ name: "Join date", property: "TO_CHAR(user.created_at, 'YYYY-MM-DD')" }
+			"id",
+			{ property: "Join date", name: "created_at" }
 		],
 		join: {
 			petition: { target_key: "user_id", type: "oneToMany" },
@@ -14,9 +15,10 @@ module.exports = {
 
 	petition: {
 		alias: "petition",
-		table: "events",
+		name: "events",
 		columns: [
-			{ name: "Start date", property: "TO_CHAR(events.created_at, 'YYYY-MM-DD')" }
+			"id",
+			{ property: "Start date", name: "created_at" }
 		],
 		join: {
 			user: { source_key: "user_id", type: "oneToOne" },
@@ -27,9 +29,10 @@ module.exports = {
 
 	signature: {
 		alias: "signature",
-		table: "signatures_users",
+		name: "signatures_users",
 		columns: [
-			{ name: "Sign date", property: "TO_CHAR(signatures_users.created_at, 'YYYY-MM-DD')" }
+			"id",
+			{ property: "Sign date", name: "created_at" }
 		],
 		join: {
 			user: { source_key: "user_id", type: "manyToOne" },
@@ -40,8 +43,8 @@ module.exports = {
 
 	tag: {
 		alias: "tag",
-		table: "tags",
-		columns: [ "name" ],
+		name: "tags",
+		columns: [ "id", "name" ],
 		join: { 
 			taggings: { target_key: "tag_id", type: "oneToOne" }
 		}
@@ -49,8 +52,8 @@ module.exports = {
 
 	taggings: {
 		alias: "taggings",
-		table: "taggings",
-		columns: [ "tag_id", "taggable_id" ],
+		name: "taggings",
+		columns: [ "id", "tag_id", "taggable_id" ],
 		join: {
 			petition: { source_key: "taggable_id", type: "manyToOne" },
 			signature: { source_key: "taggable_id", type: "manyToOne" },
