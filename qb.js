@@ -5,6 +5,7 @@ var sql = require('sql');
 
 // Create the root constructor function.
 function Qb(definitions) {
+	this.sql = sql;
 	this.models = {};
 	this.schema = {};
 	this.definitions = {};
@@ -40,6 +41,34 @@ Qb.prototype.define = function(definitions) {
 			});
 		}
 	}
+};
+
+
+Qb.prototype.query = function(spec) {
+	var that = this;
+
+	var model   = this.models[spec.model];
+	var fields  = spec.fields  || [];
+	var groupBy = spec.groupBy || [];
+	var where   = spec.where   || [];
+
+	var query = model
+	query.select(fields).from(model);
+	console.log(query.toQuery())
+
+	where.forEach(function(and) {
+		var orClauses;
+		and.forEach(function(or) {
+			var clause = that.models[or.model][or.field][or.operator](or.value);
+			if (!orClauses) { orClauses = clause; }
+			else { orClauses.or(clause); }
+		});
+		query.and(orClauses);
+	});
+
+	query.toQuery();
+
+	console.log(query.text());
 };
 
 

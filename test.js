@@ -7,7 +7,14 @@ var mocha       = require('mocha')
 
 var qb = new Qb(definitions);
 
-console.log(qb.schema)
+var spec = {
+  model: 'user',
+  fields: ['id', 'created_at'] ,
+  groupBy: ['id'],
+  where: [[{ model: 'user', field: 'id', operator: 'equals', value: 100 }]]
+};
+
+qb.query(spec);
 
 
 describe('Testing', function() {
