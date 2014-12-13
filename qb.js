@@ -1,37 +1,62 @@
-var sql = require('sql')
-,   fs  = require('fs');
+
+var sql = require('sql');
 
 
-// Read model definitions from file.
-var associations = require('./example-models.js');
 
-
-// An object to hold each SQL model definition.
-var db = {};
-
-
-// For each model defined in associations...
-for (var key in associations) {
-	var model = associations[key];
-
-	// Set the primary key to "id" unless otherwise defined.
-	model.primary_key = model.primary_key || 'id';
-
-	// Call sql.define() on each model and add to db object.
-	db[key] = sql.define(model);
+// Create the root constructor function.
+function Qb(definitions) {
+	this.models = {};
+	this.schema = {};
+	this.definitions = {};
+	if (definitions) { this.define(definitions); }
 }
 
 
-var qb = {
-	model: 'user',
-	select: ['Join date'],
+
+// Define models and relationships.
+Qb.prototype.define = function(definitions) {
+	var that = this;
+	this.definitions = definitions;
+
+	// Call sql.define on each model in definition.
+	for (var table in definitions) {
+		var model = normalize(definitions[table]);
+		this.models[table] = sql.define(model);
+	}
+
+	// Create an object that maps all columns related to a model.
+	for (var table in this.definitions) {
+		var schema = this.schema[table] = {};
+		var definition = this.definitions[table];
+		schema[table] = definition.columns.map(function(col) { 
+			return col.name; 
+		});
+
+		// Include columns that can be joined to a model.
+		for (join in definition.joins) {
+			var joinTable = that.definitions[join];
+			schema[join] = joinTable.columns.map(function(col) { 
+				return col.name; 
+			});
+		}
+	}
 };
 
 
-var model = db[qb.model];
-var select = db.user[qb.select];
-var from = db[qb.model];
+
+// Parse definition for use with sql.define().
+function normalize(model) {
+	model.columns = model.columns.map(function(col) {
+		if (typeof col === 'string') {
+			return { name: col, property: col }
+		}
+		return { name: col.name, property: col.as || col.name }
+	});
+
+	model.primary_key = model.primary_key || 'id';
+	return model;
+}
 
 
-// var query = model.select(select).from(from).toQuery();
-// console.log(query.text);
+
+module.exports = Qb;

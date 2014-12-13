@@ -1,15 +1,16 @@
-module.exports = {
+var definitions = {
 
 	user: {
 		alias: "user",
 		name: "users",
 		columns: [
 			"id",
-			{ property: "Join date", name: "created_at" }
+			{ as: "joins date", name: "created_at" }
 		],
-		join: {
+		joins: {
 			petition: { target_key: "user_id", type: "oneToMany" },
-			signature: { target_key: "user_id", type: "oneToMany" }
+			signature: { target_key: "user_id", type: "oneToMany" },
+			tag: { via: 'signature' }
 		}
 	},
 
@@ -18,9 +19,9 @@ module.exports = {
 		name: "events",
 		columns: [
 			"id",
-			{ property: "Start date", name: "created_at" }
+			{ as: "Start date", name: "created_at" }
 		],
-		join: {
+		joins: {
 			user: { source_key: "user_id", type: "oneToOne" },
 			signature: { target_key: "petition_id", type: "oneToMany" },
 			tag: { via: "taggings" }
@@ -32,9 +33,9 @@ module.exports = {
 		name: "signatures_users",
 		columns: [
 			"id",
-			{ property: "Sign date", name: "created_at" }
+			{ as: "Sign date", name: "created_at" }
 		],
-		join: {
+		joins: {
 			user: { source_key: "user_id", type: "manyToOne" },
 			petition: { source_key: "petition_id", type: "manyToOne" },
 			tag: { source_key: "petition_id", via: "taggings" }
@@ -45,7 +46,7 @@ module.exports = {
 		alias: "tag",
 		name: "tags",
 		columns: [ "id", "name" ],
-		join: { 
+		joins: { 
 			taggings: { target_key: "tag_id", type: "oneToOne" }
 		}
 	},
@@ -54,7 +55,7 @@ module.exports = {
 		alias: "taggings",
 		name: "taggings",
 		columns: [ "id", "tag_id", "taggable_id" ],
-		join: {
+		joins: {
 			petition: { source_key: "taggable_id", type: "manyToOne" },
 			signature: { source_key: "taggable_id", type: "manyToOne" },
 			tag: { source_key: "tag_id", type: "oneToOne" }
@@ -62,3 +63,6 @@ module.exports = {
 	}
 
 };
+
+
+if (module && module.exports) { module.exports = definitions; }
