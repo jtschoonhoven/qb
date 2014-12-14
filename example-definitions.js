@@ -5,7 +5,7 @@ var definitions = {
 		name: "users",
 		columns: [
 			"id",
-			{ as: "joins date", name: "created_at" }
+			{ as: "Join date", name: "created_at" }
 		],
 		joins: {
 			petition: { target_key: "user_id", type: "oneToMany", as: "User petitions" },

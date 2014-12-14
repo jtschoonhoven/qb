@@ -44,32 +44,43 @@ Qb.prototype.define = function(definitions) {
 };
 
 
-Qb.prototype.query = function(spec) {
-	var that = this;
 
-	var model   = this.models[spec.model];
+Qb.prototype.query = function(spec) {
 	var fields  = spec.fields  || [];
 	var groupBy = spec.groupBy || [];
-	var where   = spec.where   || [];
 
-	var andClauses;
-	where.forEach(function(and) {
-		var orClauses;
+	var model   = this.models[spec.model];
+	var where = this.createWhereClauses(spec.where);
+	
+	var query = this.models.user.select(fields).where(where).toQuery()
+	console.log(query.text)
+};
+
+
+// Create a where clause from user input.
+// And/or groupings are implied by the order
+// of nested arrays.
+Qb.prototype.createWhereClauses = function(spec) {
+	var that = this;
+	spec = spec || [];
+
+	var andClauses = [];
+	spec.forEach(function(and) {
+		var orClauses = [];
 
 		and.forEach(function(or) {
 			var clause = that.models[or.model][or.field][or.operator](or.value);
-			if (!orClauses) { orClauses = clause; }
-			else { orClauses.or(clause); }
+			orClauses.push(clause);
 		});
 
-		if (!andClauses) { andClauses = orClauses; }
-		else { andClauses.and(orClauses); }
+		if (orClauses.length > 1) {
+			var assembled = orClauses[0].or(orClauses.slice(1));
+			andClauses.push(assembled);
+		} 
+		else { andClauses.push(orClauses[0]); }
 	});
 
-	var query = model.select(fields).from(model).where(andClauses).toQuery();
-
-	console.log(query.text)
-
+	return andClauses;
 };
 
 
