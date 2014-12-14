@@ -45,6 +45,7 @@ Qb.prototype.define = function(definitions) {
 
 
 
+// Assemble SQL query from to spec.
 Qb.prototype.query = function(spec) {
 	var fields  = spec.fields  || [];
 	var groupBy = spec.groupBy || [];
@@ -57,6 +58,7 @@ Qb.prototype.query = function(spec) {
 };
 
 
+
 // Create a where clause from user input.
 // And/or groupings are implied by the order
 // of nested arrays.
@@ -64,20 +66,24 @@ Qb.prototype.createWhereClauses = function(spec) {
 	var that = this;
 	spec = spec || [];
 
+	// Clauses in the outer arrays are joined with logical AND's.
 	var andClauses = [];
 	spec.forEach(function(and) {
-		var orClauses = [];
 
+		// Clauses in the inner arrays are joined with logical OR's.
+		var orClauses = [];
 		and.forEach(function(or) {
+
+			// Create one complete WHERE clause and push to orClauses array.
 			var clause = that.models[or.model][or.field][or.operator](or.value);
 			orClauses.push(clause);
 		});
 
+		// Each block of OR conditions gets pushed to the array of AND's.
 		if (orClauses.length > 1) {
 			var assembled = orClauses[0].or(orClauses.slice(1));
 			andClauses.push(assembled);
-		} 
-		else { andClauses.push(orClauses[0]); }
+		} else { andClauses.push(orClauses[0]); }
 	});
 
 	return andClauses;
