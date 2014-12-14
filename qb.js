@@ -52,23 +52,24 @@ Qb.prototype.query = function(spec) {
 	var groupBy = spec.groupBy || [];
 	var where   = spec.where   || [];
 
-	var query = model
-	query.select(fields).from(model);
-	console.log(query.toQuery())
-
+	var andClauses;
 	where.forEach(function(and) {
 		var orClauses;
+
 		and.forEach(function(or) {
 			var clause = that.models[or.model][or.field][or.operator](or.value);
 			if (!orClauses) { orClauses = clause; }
 			else { orClauses.or(clause); }
 		});
-		query.and(orClauses);
+
+		if (!andClauses) { andClauses = orClauses; }
+		else { andClauses.and(orClauses); }
 	});
 
-	query.toQuery();
+	var query = model.select(fields).from(model).where(andClauses).toQuery();
 
-	console.log(query.text());
+	console.log(query.text)
+
 };
 
 
