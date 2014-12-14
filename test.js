@@ -9,7 +9,7 @@ var qb = new Qb(definitions);
 
 var spec = {
   model: 'user',
-  fields: ['id', 'created_at'] ,
+  fields: ['id', 'created_at'],
   groupBy: ['id'],
   where: [
     [{ model: 'user', field: 'id', operator: 'equals', value: 100 }, { model: 'user', field: 'id', operator: 'equals', value: 200 }],

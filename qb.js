@@ -47,48 +47,46 @@ Qb.prototype.define = function(definitions) {
 
 // Assemble SQL query from to spec.
 Qb.prototype.query = function(spec) {
+	var that = this;
+
+	// Query spec.
+	var model   = this.models[spec.model];
 	var fields  = spec.fields  || [];
+	var where   = spec.where   || [];
 	var groupBy = spec.groupBy || [];
 
-	var model   = this.models[spec.model];
-	var where = this.createWhereClauses(spec.where);
-	
-	var query = this.models.user.select(fields).where(where).toQuery()
-	console.log(query.text)
+	var query = model.select(fields).from(model);
+	filter.call(this, query, where);
+
+	console.log(query.toQuery().text)
 };
 
 
 
-// Create a where clause from user input.
-// And/or groupings are implied by the order
-// of nested arrays.
-Qb.prototype.createWhereClauses = function(spec) {
+// Apply where conditions and AND/OR logic.
+function filter(query, where) {
 	var that = this;
-	spec = spec || [];
 
-	// Clauses in the outer arrays are joined with logical AND's.
-	var andClauses = [];
-	spec.forEach(function(and) {
-
-		// Clauses in the inner arrays are joined with logical OR's.
+	// "Where" is an outer array of AND conditions.
+	where.forEach(function(and) {
 		var orClauses = [];
-		and.forEach(function(or) {
 
-			// Create one complete WHERE clause and push to orClauses array.
-			var clause = that.models[or.model][or.field][or.operator](or.value);
+		// "And" is an inner array of OR conditions.
+		and.forEach(function(or) {
+			var model  = that.models[or.model];
+			var clause = model[or.field][or.operator](or.value);
 			orClauses.push(clause);
 		});
 
-		// Each block of OR conditions gets pushed to the array of AND's.
-		if (orClauses.length > 1) {
-			var assembled = orClauses[0].or(orClauses.slice(1));
-			andClauses.push(assembled);
-		} else { andClauses.push(orClauses[0]); }
+		// Assemble a block or OR conditions from orClauses array.
+		var block;
+		if (orClauses.length > 1) { block = orClauses[0].or(orClauses.slice(1)); }
+		else { block = orClauses[0]; }
+
+		// Apply to query.
+		query.where(block);
 	});
-
-	return andClauses;
-};
-
+}
 
 
 // Parse definition for use with sql.define().
