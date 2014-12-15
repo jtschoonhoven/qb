@@ -24,12 +24,26 @@ var spec2 = {
       model: 'signatures', 
       fields: ['created_at'],
       joins: [{ model: 'petitions', fields: ['id'] }]
+    },
+    {
+      model: 'tags'
+    }
+  ]
+};
+
+var spec3 = {
+  model: 'users',
+  fields: ['id', 'created_at'],
+  joins: [
+    {
+      model: 'tags'
     }
   ]
 };
 
 // qb.query(spec1);
-qb.query(spec2);
+// qb.query(spec2);
+qb.query(spec3);
 
 
 describe('Testing', function() {

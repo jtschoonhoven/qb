@@ -107,22 +107,33 @@ function joinAll(from, model, joins) {
 
 
 // TODO: Add support for intermediate tables.
+// NOTE: SQL module has a joinTo method that might simplify this,
+// though it may not work with intermediate tables or LEFT joins.
 function joinModel(from, model, join) {
 	var that = this;
 
 	var sourceModel = this.models[model];
-	var joinModel   = this.models[join];
+	var targetModel = this.models[join];
+
+	if (!this.definitions[model]) {
+		throw 'Failed to find "' + model + '" in list of defined tables.'
+	}
+
+	if (!this.definitions[join]) {
+		throw 'Failed to find "' + join + '" in list of defined tables.'
+	}
 
 	// Get the primary keys of the tables to use as default join key.
 	var sourcePrimaryKey = this.definitions[model].primary_key || 'id';
 	var targetPrimaryKey = this.definitions[join].primary_key  || 'id';
 
-	// Join on specified source_key or assume "id".
+	if (!this.definitions[model].joins[join]) {
+		throw 'Failed to join "' + join + '" on "' + model + '": join logic not defined.';
+	}
+
+	// Join on defined source_key or default to primary key.
 	var sourceKey = this.definitions[model].joins[join].source_key || sourcePrimaryKey;
 	var targetKey = this.definitions[model].joins[join].target_key || targetPrimaryKey;
-
-	// Get intermediate table, if any.
-	var via = this.definitions[model].joins[join].via;
 
 	if (this.schema[model][model].indexOf(sourceKey) < 0) {
 		throw 'Failed to find join column "' + sourceKey + '" in table "' + model + '".';
@@ -132,8 +143,17 @@ function joinModel(from, model, join) {
 		throw 'Failed to find join column "' + targetKey + '" in table "' + join + '".';
 	}
 
+	// Get intermediate table, if any.
+	var via = this.definitions[model].joins[join].via;
+
+	// Special logic to handle joining via an intermediate table.
+	if (via) {
+		from = joinModel.call(this, from, model, via);
+		return joinModel.call(this, from, via, join);
+	}
+
 	// Return a JOIN clause.
-	return from.join(joinModel).on(sourceModel[sourceKey].equals(joinModel[targetKey]));
+	return from.join(targetModel).on(sourceModel[sourceKey].equals(targetModel[targetKey]));
 }
 
 

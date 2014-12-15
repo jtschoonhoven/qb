@@ -9,7 +9,7 @@ var definitions = {
 		joins: {
 			petitions: { target_key: "user_id", type: "oneToMany", as: "User petitions" },
 			signatures: { target_key: "user_id", type: "oneToMany", as: "User signatures" },
-			tags: { via: 'signature', as: "Tags signed" }
+			tags: { via: 'signatures', as: "Tags signed" }
 		}
 	},
 
@@ -17,7 +17,8 @@ var definitions = {
 		name: "events",
 		columns: [
 			"id",
-			{ as: "Start date", name: "created_at" }
+			{ name: "user_id", as: "Petition creator" },
+			{ name: "created_at", as: "Start date" }
 		],
 		joins: {
 			users: { source_key: "user_id", type: "oneToOne", as: "Petition creator" },
@@ -38,7 +39,8 @@ var definitions = {
 		joins: {
 			users: { source_key: "user_id", type: "manyToOne", as: "Signer" },
 			petitions: { source_key: "petition_id", type: "manyToOne", as: "Signature petition" },
-			tags: { source_key: "petition_id", via: "taggings", as: "Signature tags" }
+			tags: { source_key: "petition_id", via: "taggings", as: "Signature tags" },
+			taggings: { source_key: "petition_id", target_key: "taggable_id", type: "manyToOne" }
 		}
 	},
 
