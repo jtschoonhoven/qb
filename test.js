@@ -40,8 +40,8 @@ var spec3 = {
 };
 
 // qb.query(spec1);
-qb.query(spec2);
-// qb.query(spec3);
+// qb.query(spec2);
+qb.query(spec3);
 
 
 describe('Testing', function() {

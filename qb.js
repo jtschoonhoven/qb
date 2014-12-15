@@ -68,8 +68,6 @@ Qb.prototype.query = function(spec) {
 	var joins   = spec.joins   || [];
 	var groupBy = spec.groupBy || [];
 
-	this.joinTables = {};
-
 	// Assemble query.
 	var query = this.models[model].select(fields);
 	createFromClause.call(this, query, model, joins);
@@ -108,10 +106,8 @@ function joinAll(from, model, joins) {
 }
 
 
-
-// TODO: Add support for intermediate tables.
-// NOTE: SQL module has a joinTo method that might simplify this,
-// though it may not work with intermediate tables or LEFT joins.
+// Create a single JOIN clause between "model" and "join".
+// TODO: Allow joining the same table more than once.
 function joinModel(from, model, join) {
 	var that = this;
 
@@ -127,28 +123,21 @@ function joinModel(from, model, join) {
 	var joinAlias = sourceDef.joins[join].as;
 	targetModel = targetModel.as(joinAlias);
 
-	// In case we're joining the same table with the same alias
-	// more than once, check joinTables object and modify alias 
-	// if necessary.
-
-
-
-
 	// Get the primary keys of the tables to use as default join key.
-	var sourcePrimaryKey = this.definitions[model].primary_key || 'id';
-	var targetPrimaryKey = this.definitions[join].primary_key  || 'id';
+	var sourcePrimaryKey = sourceDef.primary_key || 'id';
+	var targetPrimaryKey = targetDef.primary_key || 'id';
 
-	if (!this.definitions[model].joins[join]) { throw 'Failed to join "' + join + '" on "' + model + '": join logic not defined.'; }
+	if (!sourceDef.joins[join]) { throw 'Failed to join "' + join + '" on "' + model + '": join logic not defined.'; }
 
 	// Join on defined source_key or default to primary key.
-	var sourceKey = this.definitions[model].joins[join].source_key || sourcePrimaryKey;
-	var targetKey = this.definitions[model].joins[join].target_key || targetPrimaryKey;
+	var sourceKey = sourceDef.joins[join].source_key || sourcePrimaryKey;
+	var targetKey = sourceDef.joins[join].target_key || targetPrimaryKey;
 
 	if (this.schema[model][model].indexOf(sourceKey) < 0) { throw 'Failed to find join column "' + sourceKey + '" in table "' + model + '".'; }
 	if (this.schema[model][join].indexOf(targetKey) < 0) { throw 'Failed to find join column "' + targetKey + '" in table "' + join + '".'; }
 
 	// Get intermediate table, if any.
-	var via = this.definitions[model].joins[join].via;
+	var via = sourceDef.joins[join].via;
 
 	// Special logic to handle joining via an intermediate table.
 	if (via) {
