@@ -9,8 +9,8 @@ var qb = new Qb(definitions);
 
 var spec = {
   model: 'user',
-  fields: ['id', 'created_at'],
-  groupBy: ['id'],
+  fields: [{ model: 'user', field: 'id' }, { model: 'user', field: 'created_at' }, { model: 'signature', field: 'id' }],
+  groupBy: [{ model: 'user', field: 'id' }, { model: 'user', field: 'created_at' }],
   where: [
     [{ model: 'user', field: 'id', operator: 'equals', value: 100 }, { model: 'user', field: 'id', operator: 'equals', value: 200 }],
     [{ model: 'user', field: 'Join date', operator: 'equals', value: 200 }]

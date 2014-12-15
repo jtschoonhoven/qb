@@ -58,7 +58,7 @@ Qb.prototype.query = function(spec) {
 	var query = model.select(fields).from(model);
 	filter.call(this, query, where);
 
-	console.log(query.toQuery().text)
+	console.log(query.toQuery().text);
 };
 
 
