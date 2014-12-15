@@ -68,6 +68,8 @@ Qb.prototype.query = function(spec) {
 	var joins   = spec.joins   || [];
 	var groupBy = spec.groupBy || [];
 
+	this.joinTables = {};
+
 	// Assemble query.
 	var query = this.models[model].select(fields);
 	createFromClause.call(this, query, model, joins);
@@ -87,6 +89,7 @@ function createFromClause(query, model, joins) {
 }
 
 
+
 // Call "joinModel" on each join in spec.
 function joinAll(from, model, joins) {
 	var that = this;
@@ -95,8 +98,8 @@ function joinAll(from, model, joins) {
 	// Join each model listed in "joins" array to "model".
 	joins.forEach(function(join) {
 		from = joinModel.call(that, from, model, join.model);
+		// If child joins are defined, recursively call joinAll.
 		if (join.joins) { 
-			// If child joins are defined, recursively call joinAll.
 			from = joinAll.call(that, from, join.model, join.joins);
 		}
 	});
@@ -112,36 +115,37 @@ function joinAll(from, model, joins) {
 function joinModel(from, model, join) {
 	var that = this;
 
+	var sourceDef = this.definitions[model];
+	var targetDef = this.definitions[join];
+
+	if (!sourceDef) { throw 'Failed to find "' + model + '" in list of defined tables.'; }
+	if (!targetDef) { throw 'Failed to find "' + join + '" in list of defined tables.'; }
+
 	var sourceModel = this.models[model];
 	var targetModel = this.models[join];
 
-	if (!this.definitions[model]) {
-		throw 'Failed to find "' + model + '" in list of defined tables.'
-	}
+	var joinAlias = sourceDef.joins[join].as;
+	targetModel = targetModel.as(joinAlias);
 
-	if (!this.definitions[join]) {
-		throw 'Failed to find "' + join + '" in list of defined tables.'
-	}
+	// In case we're joining the same table with the same alias
+	// more than once, check joinTables object and modify alias 
+	// if necessary.
+
+
+
 
 	// Get the primary keys of the tables to use as default join key.
 	var sourcePrimaryKey = this.definitions[model].primary_key || 'id';
 	var targetPrimaryKey = this.definitions[join].primary_key  || 'id';
 
-	if (!this.definitions[model].joins[join]) {
-		throw 'Failed to join "' + join + '" on "' + model + '": join logic not defined.';
-	}
+	if (!this.definitions[model].joins[join]) { throw 'Failed to join "' + join + '" on "' + model + '": join logic not defined.'; }
 
 	// Join on defined source_key or default to primary key.
 	var sourceKey = this.definitions[model].joins[join].source_key || sourcePrimaryKey;
 	var targetKey = this.definitions[model].joins[join].target_key || targetPrimaryKey;
 
-	if (this.schema[model][model].indexOf(sourceKey) < 0) {
-		throw 'Failed to find join column "' + sourceKey + '" in table "' + model + '".';
-	}
-
-	if (this.schema[model][join].indexOf(targetKey) < 0) {
-		throw 'Failed to find join column "' + targetKey + '" in table "' + join + '".';
-	}
+	if (this.schema[model][model].indexOf(sourceKey) < 0) { throw 'Failed to find join column "' + sourceKey + '" in table "' + model + '".'; }
+	if (this.schema[model][join].indexOf(targetKey) < 0) { throw 'Failed to find join column "' + targetKey + '" in table "' + join + '".'; }
 
 	// Get intermediate table, if any.
 	var via = this.definitions[model].joins[join].via;
@@ -155,7 +159,6 @@ function joinModel(from, model, join) {
 	// Return a JOIN clause.
 	return from.join(targetModel).on(sourceModel[sourceKey].equals(targetModel[targetKey]));
 }
-
 
 
 
@@ -184,6 +187,7 @@ function createWhereClause(query, model, where) {
 		query.where(block);
 	});
 }
+
 
 
 // Parse definition for use with sql.define().

@@ -38,7 +38,7 @@ var definitions = {
 		],
 		joins: {
 			users: { source_key: "user_id", type: "manyToOne", as: "Signer" },
-			petitions: { source_key: "petition_id", type: "manyToOne", as: "Signature petition" },
+			petitions: { source_key: "petition_id", type: "manyToOne", as: "Petition signed" },
 			tags: { source_key: "petition_id", via: "taggings", as: "Signature tags" },
 			taggings: { source_key: "petition_id", target_key: "taggable_id", type: "manyToOne" }
 		}
