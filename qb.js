@@ -4,8 +4,9 @@ var sql = require('sql');
 
 
 // Create the root constructor function.
+// The models object contains models defined by the sql package.
+// The schema object is a map of the db structure.
 function Qb(definitions) {
-	this.sql = sql;
 	this.models = {};
 	this.schema = {};
 	this.definitions = {};
@@ -15,6 +16,7 @@ function Qb(definitions) {
 
 
 // Define models and relationships.
+// This is done just once to configure the Qb instance.
 Qb.prototype.define = function(definitions) {
 	var that = this;
 	this.definitions = definitions;
@@ -25,10 +27,15 @@ Qb.prototype.define = function(definitions) {
 		this.models[table] = sql.define(model);
 	}
 
-	// Create an object that maps all columns related to a model.
+	// Create an object that maps all related columns to a model.
 	for (var table in this.definitions) {
 		var schema = this.schema[table] = {};
 		var definition = this.definitions[table];
+
+		if (!definition) { 
+			throw 'Failed to find table "' + table + '" in schema definition.';
+		}
+
 		schema[table] = definition.columns.map(function(col) { 
 			return col.name; 
 		});
@@ -36,6 +43,11 @@ Qb.prototype.define = function(definitions) {
 		// Include columns that can be joined to a model.
 		for (join in definition.joins) {
 			var joinTable = that.definitions[join];
+
+			if (!joinTable) { 
+				throw 'Failed to find join table "' + join + '" in schema definition.';
+			}
+
 			schema[join] = joinTable.columns.map(function(col) { 
 				return col.name; 
 			});
@@ -50,22 +62,87 @@ Qb.prototype.query = function(spec) {
 	var that = this;
 
 	// Query spec.
-	var model   = this.models[spec.model];
+	var model   = spec.model
 	var fields  = spec.fields  || [];
 	var where   = spec.where   || [];
+	var joins   = spec.joins   || [];
 	var groupBy = spec.groupBy || [];
 
-	var query = model.select(fields).from(model);
-	filter.call(this, query, where);
+	// Assemble query.
+	var query = this.models[model].select(fields);
+	createFromClause.call(this, query, model, joins);
+	createWhereClause.call(this, query, model, where);
 
 	console.log(query.toQuery().text);
 };
 
 
 
-// Apply where conditions and AND/OR logic.
-function filter(query, where) {
+
+// Apply JOIN logic.
+function createFromClause(query, model, joins) {
 	var that = this;
+	var from = joinAll.call(this, null, model, joins);
+	query.from(from);
+}
+
+
+// Call "joinModel" on each join in spec.
+function joinAll(from, model, joins) {
+	var that = this;
+	var from = from || this.models[model];
+
+	// Join each model listed in "joins" array to "model".
+	joins.forEach(function(join) {
+		from = joinModel.call(that, from, model, join.model);
+		if (join.joins) { 
+			// If child joins are defined, recursively call joinAll.
+			from = joinAll.call(that, from, join.model, join.joins);
+		}
+	});
+
+	return from;
+}
+
+
+
+// TODO: Add support for intermediate tables.
+function joinModel(from, model, join) {
+	var that = this;
+
+	var sourceModel = this.models[model];
+	var joinModel   = this.models[join];
+
+	// Get the primary keys of the tables to use as default join key.
+	var sourcePrimaryKey = this.definitions[model].primary_key || 'id';
+	var targetPrimaryKey = this.definitions[join].primary_key  || 'id';
+
+	// Join on specified source_key or assume "id".
+	var sourceKey = this.definitions[model].joins[join].source_key || sourcePrimaryKey;
+	var targetKey = this.definitions[model].joins[join].target_key || targetPrimaryKey;
+
+	// Get intermediate table, if any.
+	var via = this.definitions[model].joins[join].via;
+
+	if (this.schema[model][model].indexOf(sourceKey) < 0) {
+		throw 'Failed to find join column "' + sourceKey + '" in table "' + model + '".';
+	}
+
+	if (this.schema[model][join].indexOf(targetKey) < 0) {
+		throw 'Failed to find join column "' + targetKey + '" in table "' + join + '".';
+	}
+
+	// Return a JOIN clause.
+	return from.join(joinModel).on(sourceModel[sourceKey].equals(joinModel[targetKey]));
+}
+
+
+
+
+// Apply where conditions and AND/OR logic.
+function createWhereClause(query, model, where) {
+	var that  = this;
+	var model = this.models[model];
 
 	// "Where" is an outer array of AND conditions.
 	where.forEach(function(and) {

@@ -1,66 +1,64 @@
 var definitions = {
 
-	user: {
-		alias: "user",
+	users: {
 		name: "users",
 		columns: [
 			"id",
 			{ as: "Join date", name: "created_at" }
 		],
 		joins: {
-			petition: { target_key: "user_id", type: "oneToMany", as: "User petitions" },
-			signature: { target_key: "user_id", type: "oneToMany", as: "User signatures" },
-			tag: { via: 'signature', as: "Tags signed" }
+			petitions: { target_key: "user_id", type: "oneToMany", as: "User petitions" },
+			signatures: { target_key: "user_id", type: "oneToMany", as: "User signatures" },
+			tags: { via: 'signature', as: "Tags signed" }
 		}
 	},
 
-	petition: {
-		alias: "petition",
+	petitions: {
 		name: "events",
 		columns: [
 			"id",
 			{ as: "Start date", name: "created_at" }
 		],
 		joins: {
-			user: { source_key: "user_id", type: "oneToOne", as: "Petition creator" },
-			signature: { target_key: "petition_id", type: "oneToMany", as: "Petition signatures" },
-			tag: { via: "taggings", as: "Petition tags" }
+			users: { source_key: "user_id", type: "oneToOne", as: "Petition creator" },
+			signatures: { target_key: "petition_id", type: "oneToMany", as: "Petition signatures" },
+			tags: { via: "taggings", as: "Petition tags" }
 		}
 	},
 
-	signature: {
-		alias: "signature",
+	signatures: {
+		alias: "signatures",
 		name: "signatures_users",
 		columns: [
 			"id",
-			{ as: "Sign date", name: "created_at" }
+			"petition_id",
+			"user_id",
+			{ as: "Sign date", name: "created_at" },
 		],
 		joins: {
-			user: { source_key: "user_id", type: "manyToOne", as: "Signer" },
-			petition: { source_key: "petition_id", type: "manyToOne", as: "Signature petition" },
-			tag: { source_key: "petition_id", via: "taggings", as: "Signature tags" }
+			users: { source_key: "user_id", type: "manyToOne", as: "Signer" },
+			petitions: { source_key: "petition_id", type: "manyToOne", as: "Signature petition" },
+			tags: { source_key: "petition_id", via: "taggings", as: "Signature tags" }
 		}
 	},
 
-	tag: {
-		alias: "tag",
+	tags: {
 		name: "tags",
 		columns: [ "id", "name" ],
 		joins: {
-			user: { via: "taggings", as: "Users signed" },
-			petition: { via: "taggings", as: "Petitions tagged" },
+			users: { via: "taggings", as: "Users signed" },
+			petitions: { via: "taggings", as: "Petitions tagged" },
 			taggings: { target_key: "tag_id", type: "oneToOne" }
 		}
 	},
 
 	taggings: {
-		alias: "taggings",
 		name: "taggings",
 		columns: [ "id", "tag_id", "taggable_id" ],
 		joins: {
-			petition: { source_key: "taggable_id", type: "manyToOne" },
-			signature: { source_key: "taggable_id", type: "manyToOne" },
-			tag: { source_key: "tag_id", type: "oneToOne" }
+			petitions: { source_key: "taggable_id", type: "manyToOne" },
+			signatures: { source_key: "taggable_id", type: "manyToOne" },
+			tags: { source_key: "tag_id", type: "oneToOne" }
 		}
 	}
 
