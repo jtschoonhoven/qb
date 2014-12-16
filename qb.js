@@ -67,8 +67,7 @@ Qb.prototype.query = function(spec) {
 
 	select.call(this, query, spec);
 	from.call(this, query, spec);
-
-	createWhereClause.call(this, query, spec);
+	where.call(this, query, spec);
 
 	console.log('\n')
 	console.log(query.toQuery().text);
@@ -169,7 +168,7 @@ function joinTable(spec, from) {
 
 
 // Apply where conditions and AND/OR logic.
-function createWhereClause(query, spec) {
+function where(query, spec) {
 	var that  = this;
 	var model = this.models[spec.table];
 
