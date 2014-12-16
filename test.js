@@ -22,7 +22,7 @@ var spec2 = {
   joins: [
     { 
       model: 'signatures', 
-      fields: ['created_at'],
+      fields: ['Sign date'],
       joins: [{ model: 'petitions', fields: ['id'] }]
     }
   ]
@@ -30,10 +30,11 @@ var spec2 = {
 
 var spec3 = {
   model: 'signatures',
-  fields: ['id', 'created_at'],
+  fields: ['id', 'Sign date'],
   joins: [
     {
       model: 'tags',
+      fields: ['name'],
       joins: [{ model: 'petitions'}]
     }
   ]

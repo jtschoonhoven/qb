@@ -63,19 +63,37 @@ Qb.prototype.query = function(spec) {
 
 	// Query spec.
 	var model   = spec.model
-	var fields  = spec.fields  || [];
 	var where   = spec.where   || [];
 	var joins   = spec.joins   || [];
 	var groupBy = spec.groupBy || [];
 
 	// Assemble query.
-	var query = this.models[model].select(fields);
+	var query = this.models[model].select([]);
+
+	createSelectClause.call(this, query, spec);
 	createFromClause.call(this, query, model, joins);
 	createWhereClause.call(this, query, model, where);
 
 	console.log(query.toQuery().text);
 };
 
+
+
+function createSelectClause(query, spec) {
+	var that = this;
+
+	var model  = this.models[spec.model];
+	var fields = spec.fields || [];
+
+	fields = fields.map(function(field) { return model[field]; });
+	query.select(fields);
+
+	if (spec.joins) {
+		spec.joins.forEach(function(join) {
+			createSelectClause.call(that, query, join);
+		});
+	}
+}
 
 
 
@@ -97,7 +115,7 @@ function joinAll(from, model, joins) {
 	joins.forEach(function(join) {
 		from = joinModel.call(that, from, model, join.model);
 		// If child joins are defined, recursively call joinAll.
-		if (join.joins) { 
+		if (join.joins) {
 			from = joinAll.call(that, from, join.model, join.joins);
 		}
 	});
