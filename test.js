@@ -1,6 +1,7 @@
 
 var mocha       = require('mocha')
-,   expect       = require('chai').expect
+,   expect      = require('chai').expect
+,   util        = require('util')
 ,   Qb          = require('./qb')
 ,   definitions = require('./example-definitions');
 
@@ -40,7 +41,7 @@ var spec3 = {
   ]
 };
 
-qb.query(spec1);
+// qb.query(spec1);
 qb.query(spec2);
 qb.query(spec3);
 

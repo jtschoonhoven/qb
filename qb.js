@@ -46,9 +46,10 @@ Qb.prototype.define = function(definitions) {
 			return col.name; 
 		});
 
-		// Include join columns.
+		// Include join columns and set default primary key.
 		for (join in definition.joins) {
 			var joinTable = that.definitions[join];
+			join.primary_key = join.primary_key || 'id';
 			schema[join] = joinTable.columns.map(function(col) { 
 				return col.name; 
 			});
@@ -66,13 +67,13 @@ Qb.prototype.query = function(spec) {
 	var query = this.models[spec.table].select([]);
 
 	select.call(this, query, spec);
-	createFromClause.call(this, query, spec);
+	from.call(this, query, spec);
+
 	createWhereClause.call(this, query, spec);
 
 	console.log('\n')
 	console.log(query.toQuery().text);
 
-	this.lastQuery = query.toQuery();
 	return query.toQuery().text;
 };
 
@@ -137,87 +138,34 @@ function select(query, spec) {
 
 
 
-function from(query, spec, from) {
+function from(query, spec) {
+	var tables = joinTable.call(this, spec, spec.model); 
+	query.from(tables);
+}
+
+
+
+function joinTable(spec, from) {
 	var that = this;
-	if (!from) { from = spec.model; }
+
+	var sourceName  = spec.table;
+	var sourceModel = spec.model;
+	var sourceDef   = this.definitions[sourceName];
 
 	spec.joins.forEach(function(joinSpec, index) {
-		from.call(that, query, spec.joins[index], from);
-	});
-}
+		var targetName  = joinSpec.table;
+		var targetModel = joinSpec.model;
+		var targetDef   = that.definitions[targetName];
 
+		var sourceKey = sourceDef.joins[targetName].source_key || sourceDef.primary_key;
+		var targetKey = sourceDef.joins[targetName].target_key || targetDef.primary_key;
 
-
-// Apply JOIN logic.
-function createFromClause(query, spec) {
-	var that = this;
-	var from = joinAll.call(this, null, spec.table, spec.joins);
-	query.from(from);
-}
-
-
-
-// Call "joinModel" on each join in spec.
-function joinAll(from, table, joins) {
-	var that = this;
-	var from = from || this.models[table];
-
-	// Join each model listed in "joins" array to "model".
-	joins.forEach(function(join) {
-		from = joinModel.call(that, from, table, join.table);
-		// If child joins are defined, recursively call joinAll.
-		if (join.joins) {
-			from = joinAll.call(that, from, join.table, join.joins);
-		}
+		from = from.join(targetModel).on(sourceModel[sourceKey].equals(targetModel[targetKey]));
+		from = joinTable.call(that, joinSpec, from);
 	});
 
 	return from;
 }
-
-
-// Create a single JOIN clause between "model" and "join".
-// TODO: Allow joining the same table more than once.
-function joinModel(from, table, join) {
-	var that = this;
-
-	var sourceDef = this.definitions[table];
-	var targetDef = this.definitions[join];
-
-	if (!sourceDef) { throw 'Failed to find "' + table + '" in list of defined tables.'; }
-	if (!targetDef) { throw 'Failed to find "' + join + '" in list of defined tables.'; }
-
-	var sourceModel = this.models[table];
-	var targetModel = this.models[join];
-
-	var joinAlias = sourceDef.joins[join].as;
-	targetModel = targetModel.as(joinAlias);
-
-	// Get the primary keys of the tables to use as default join key.
-	var sourcePrimaryKey = sourceDef.primary_key || 'id';
-	var targetPrimaryKey = targetDef.primary_key || 'id';
-
-	if (!sourceDef.joins[join]) { throw 'Failed to join "' + join + '" on "' + model + '": join logic not defined.'; }
-
-	// Join on defined source_key or default to primary key.
-	var sourceKey = sourceDef.joins[join].source_key || sourcePrimaryKey;
-	var targetKey = sourceDef.joins[join].target_key || targetPrimaryKey;
-
-	if (this.schema[table][table].indexOf(sourceKey) < 0) { throw 'Failed to find join column "' + sourceKey + '" in table "' + model + '".'; }
-	if (this.schema[table][join].indexOf(targetKey) < 0) { throw 'Failed to find join column "' + targetKey + '" in table "' + join + '".'; }
-
-	// Get intermediate table, if any.
-	var via = sourceDef.joins[join].via;
-
-	// Special logic to handle joining via an intermediate table.
-	if (via) {
-		from = joinModel.call(this, from, table, via);
-		return joinModel.call(this, from, via, join);
-	}
-
-	// Return a JOIN clause.
-	return from.join(targetModel).on(sourceModel[sourceKey].equals(targetModel[targetKey]));
-}
-
 
 
 // Apply where conditions and AND/OR logic.
