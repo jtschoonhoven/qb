@@ -40,10 +40,8 @@ var spec3 = {
   ]
 };
 
-// qb.query(spec1);
-// console.log('\n');
-// qb.query(spec2);
-console.log('\n');
+qb.query(spec1);
+qb.query(spec2);
 qb.query(spec3);
 
 

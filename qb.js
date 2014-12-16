@@ -38,6 +38,7 @@ Qb.prototype.define = function(definitions) {
 
 	// Create "schema" which shows all fields that exist
 	// on, or can be joined to, each table.
+
 	for (var table in this.definitions) {
 		var schema = this.schema[table] = {};
 		var definition = this.definitions[table];
@@ -57,25 +58,27 @@ Qb.prototype.define = function(definitions) {
 
 
 
-// Assemble SQL query to spec.
+// Assemble query to spec. Returns a string of SQL.
 Qb.prototype.query = function(spec) {
 	var that = this;
 
-	// Create models for each table in query spec.
 	querySetup.call(this, spec);
-
 	var query = this.models[spec.table].select([]);
 
 	select.call(this, query, spec);
 	createFromClause.call(this, query, spec);
 	createWhereClause.call(this, query, spec);
 
-	// console.log(query.toQuery().text);
-	console.log(spec.joins)
+	console.log('\n')
+	console.log(query.toQuery().text);
+
+	this.lastQuery = query.toQuery();
+	return query.toQuery().text;
 };
 
 
 
+// Set defaults and build instances of DB models.
 function querySetup(spec, joined, alias) {
 	var that = this;
 
@@ -85,10 +88,10 @@ function querySetup(spec, joined, alias) {
 	// Defaults.
 	spec.fields  = spec.fields  || [];
 	spec.joins   = spec.joins   || [];
-	spec.filters = spec.filters || [];
 
-	// Avoid joining tables with the same name by appending
-	// an _{index} to table alias.
+	// Avoid joining a table twice with the same name by 
+	// appending an _{index} to table alias.
+
 	var name = alias || spec.table;
 	if (joined[name]) { alias = name + '_' + joined[name]++; }
 	else { joined[name] = 2; }
@@ -97,17 +100,22 @@ function querySetup(spec, joined, alias) {
 	spec.model = this.models[spec.table].as(alias);
 
 	// Call function recursively for each nested join.
-	spec.joins.forEach(function(joinSpec) {
-		alias = that.definitions[spec.table].joins[joinSpec.table].as;
-		via   = that.definitions[spec.table].joins[joinSpec.table].via
+	spec.joins.forEach(function(joinSpec, index) {
+		alias   = that.definitions[spec.table].joins[joinSpec.table].as;
+		var via = that.definitions[spec.table].joins[joinSpec.table].via
 
-		if (via) {
-			var viaSpec = { table: via, joins: [{ table: joinSpec.table }] }
-			querySetup.call(that, joinSpec, joined, alias);
-		} else {
-			querySetup.call(that, joinSpec, joined, alias);
+		// If "via" defines an intermediate table, alter the spec to
+		// join through that table.
+
+		if (via) { 
+			spec.joins[index] = { 
+				table: via, 
+				joins: [{ table: joinSpec.table, fields: joinSpec.fields }] 
+			};
 		}
 
+		// Call function recursively for each join.
+		querySetup.call(that, spec.joins[index], joined, alias);
 	});
 }
 
@@ -131,14 +139,10 @@ function select(query, spec) {
 
 function from(query, spec, from) {
 	var that = this;
-
 	if (!from) { from = spec.model; }
-	else {
 
-	}
-
-	spec.joins.forEach(function(joinSpec) {
-		from.call(that, query, joinSpec, from);
+	spec.joins.forEach(function(joinSpec, index) {
+		from.call(that, query, spec.joins[index], from);
 	});
 }
 
@@ -220,6 +224,8 @@ function joinModel(from, table, join) {
 function createWhereClause(query, spec) {
 	var that  = this;
 	var model = this.models[spec.table];
+
+	spec.filters = spec.filters || [];
 
 	// "Where" is an outer array of AND conditions.
 	spec.filters.forEach(function(and) {
