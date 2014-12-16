@@ -10,7 +10,7 @@ var qb = new Qb(definitions);
 var spec1 = {
   table: 'users',
   fields: ['id', 'Join date'],
-  filter: [
+  filters: [
     [{ table: 'users', field: 'id', operator: 'equals', value: 100 }, { table: 'users', field: 'id', operator: 'equals', value: 200 }],
     [{ table: 'users', field: 'Join date', operator: 'equals', value: 200 }]
   ]

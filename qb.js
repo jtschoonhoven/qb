@@ -55,19 +55,13 @@ Qb.prototype.define = function(definitions) {
 Qb.prototype.query = function(spec) {
 	var that = this;
 
-	if (!spec.table || !this.models[spec.table]) { 
-		throw 'Failed to find table "' + spec.table + '" in list of defined tables.';
-	}
+	// Create models for each table in query spec.
+	querySetup.call(this, spec);
 
-	// Set defaults;
-	spec.joins  = spec.joins  || [];
-	spec.fields = spec.fields || [];
-	spec.filter = spec.filter || [];
-
-	// Assemble query.
+	// Create a new query.
 	var query = this.models[spec.table].select([]);
 
-	createSelectClause.call(this, query, spec);
+	select.call(this, query, spec);
 	createFromClause.call(this, query, spec);
 	createWhereClause.call(this, query, spec);
 
@@ -76,20 +70,47 @@ Qb.prototype.query = function(spec) {
 
 
 
-function createSelectClause(query, spec) {
+function querySetup(spec, joined, alias) {
 	var that = this;
 
-	var model  = this.models[spec.table];
-	var fields = spec.fields || [];
+	// Keep track of each joined model in spec.
+	joined = joined || {};
 
-	fields = fields.map(function(field) { return model[field]; });
+	// Defaults.
+	spec.fields  = spec.fields  || [];
+	spec.joins   = spec.joins   || [];
+	spec.filters = spec.filters || [];
+
+	// Avoid joining tables with the same name by appending
+	// an _{index} to table alias.
+	var name = alias || spec.table;
+	if (joined[name]) { alias = name + '_' + joined[name]++; }
+	else { joined[name] = 2; }
+
+	// Create a table model from spec. Apply alias if defined.
+	spec.model = this.models[spec.table].as(alias);
+
+	// Call function recursively for each nested join.
+	spec.joins.forEach(function(joinSpec) {
+		alias = that.definitions[spec.table].joins[joinSpec.table].as;
+		querySetup.call(that, joinSpec, joined, alias);
+	});
+}
+
+
+
+function select(query, spec) {
+	var that = this;
+
+	var fields = spec.fields.map(function(field) { 
+		return spec.model[field]; 
+	});
+
 	query.select(fields);
-
-	if (spec.joins) {
-		spec.joins.forEach(function(join) {
-			createSelectClause.call(that, query, join);
-		});
-	}
+	
+	spec.joins.forEach(function(joinSpec) {
+		select.call(that, query, joinSpec);
+	});
 }
 
 
@@ -172,7 +193,7 @@ function createWhereClause(query, spec) {
 	var model = this.models[spec.table];
 
 	// "Where" is an outer array of AND conditions.
-	spec.filter.forEach(function(and) {
+	spec.filters.forEach(function(and) {
 		var orClauses = [];
 
 		// "And" is an inner array of OR conditions.
