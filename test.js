@@ -8,40 +8,42 @@ var mocha       = require('mocha')
 var qb = new Qb(definitions);
 
 var spec1 = {
-  model: 'users',
-  fields: ['id', 'created_at'],
-  where: [
-    [{ model: 'users', field: 'id', operator: 'equals', value: 100 }, { model: 'users', field: 'id', operator: 'equals', value: 200 }],
-    [{ model: 'users', field: 'Join date', operator: 'equals', value: 200 }]
+  table: 'users',
+  fields: ['id', 'Join date'],
+  filter: [
+    [{ table: 'users', field: 'id', operator: 'equals', value: 100 }, { table: 'users', field: 'id', operator: 'equals', value: 200 }],
+    [{ table: 'users', field: 'Join date', operator: 'equals', value: 200 }]
   ]
 };
 
 var spec2 = {
-  model: 'users',
-  fields: ['id', 'created_at'],
+  table: 'users',
+  fields: ['id', 'Join date'],
   joins: [
     { 
-      model: 'signatures', 
+      table: 'signatures', 
       fields: ['Sign date'],
-      joins: [{ model: 'petitions', fields: ['id'] }]
+      joins: [{ table: 'petitions', fields: ['id'] }]
     }
   ]
 };
 
 var spec3 = {
-  model: 'signatures',
+  table: 'signatures',
   fields: ['id', 'Sign date'],
   joins: [
     {
-      model: 'tags',
+      table: 'tags',
       fields: ['name'],
-      joins: [{ model: 'petitions'}]
+      joins: [{ table: 'petitions'}]
     }
   ]
 };
 
-// qb.query(spec1);
-// qb.query(spec2);
+qb.query(spec1);
+console.log('\n');
+qb.query(spec2);
+console.log('\n');
 qb.query(spec3);
 
 

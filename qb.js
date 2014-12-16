@@ -32,9 +32,7 @@ Qb.prototype.define = function(definitions) {
 		var schema = this.schema[table] = {};
 		var definition = this.definitions[table];
 
-		if (!definition) { 
-			throw 'Failed to find table "' + table + '" in schema definition.';
-		}
+		if (!definition) { throw 'Failed to find table "' + table + '" in schema definition.'; }
 
 		schema[table] = definition.columns.map(function(col) { 
 			return col.name; 
@@ -43,11 +41,7 @@ Qb.prototype.define = function(definitions) {
 		// Include columns that can be joined to a model.
 		for (join in definition.joins) {
 			var joinTable = that.definitions[join];
-
-			if (!joinTable) { 
-				throw 'Failed to find join table "' + join + '" in schema definition.';
-			}
-
+			if (!joinTable) { throw 'Failed to find join table "' + join + '" in schema definition.'; }
 			schema[join] = joinTable.columns.map(function(col) { 
 				return col.name; 
 			});
@@ -61,18 +55,21 @@ Qb.prototype.define = function(definitions) {
 Qb.prototype.query = function(spec) {
 	var that = this;
 
-	// Query spec.
-	var model   = spec.model
-	var where   = spec.where   || [];
-	var joins   = spec.joins   || [];
-	var groupBy = spec.groupBy || [];
+	if (!spec.table || !this.models[spec.table]) { 
+		throw 'Failed to find table "' + spec.table + '" in list of defined tables.';
+	}
+
+	// Set defaults;
+	spec.joins  = spec.joins  || [];
+	spec.fields = spec.fields || [];
+	spec.filter = spec.filter || [];
 
 	// Assemble query.
-	var query = this.models[model].select([]);
+	var query = this.models[spec.table].select([]);
 
 	createSelectClause.call(this, query, spec);
-	createFromClause.call(this, query, model, joins);
-	createWhereClause.call(this, query, model, where);
+	createFromClause.call(this, query, spec);
+	createWhereClause.call(this, query, spec);
 
 	console.log(query.toQuery().text);
 };
@@ -82,7 +79,7 @@ Qb.prototype.query = function(spec) {
 function createSelectClause(query, spec) {
 	var that = this;
 
-	var model  = this.models[spec.model];
+	var model  = this.models[spec.table];
 	var fields = spec.fields || [];
 
 	fields = fields.map(function(field) { return model[field]; });
@@ -98,25 +95,25 @@ function createSelectClause(query, spec) {
 
 
 // Apply JOIN logic.
-function createFromClause(query, model, joins) {
+function createFromClause(query, spec) {
 	var that = this;
-	var from = joinAll.call(this, null, model, joins);
+	var from = joinAll.call(this, null, spec.table, spec.joins);
 	query.from(from);
 }
 
 
 
 // Call "joinModel" on each join in spec.
-function joinAll(from, model, joins) {
+function joinAll(from, table, joins) {
 	var that = this;
-	var from = from || this.models[model];
+	var from = from || this.models[table];
 
 	// Join each model listed in "joins" array to "model".
 	joins.forEach(function(join) {
-		from = joinModel.call(that, from, model, join.model);
+		from = joinModel.call(that, from, table, join.table);
 		// If child joins are defined, recursively call joinAll.
 		if (join.joins) {
-			from = joinAll.call(that, from, join.model, join.joins);
+			from = joinAll.call(that, from, join.table, join.joins);
 		}
 	});
 
@@ -126,16 +123,16 @@ function joinAll(from, model, joins) {
 
 // Create a single JOIN clause between "model" and "join".
 // TODO: Allow joining the same table more than once.
-function joinModel(from, model, join) {
+function joinModel(from, table, join) {
 	var that = this;
 
-	var sourceDef = this.definitions[model];
+	var sourceDef = this.definitions[table];
 	var targetDef = this.definitions[join];
 
-	if (!sourceDef) { throw 'Failed to find "' + model + '" in list of defined tables.'; }
+	if (!sourceDef) { throw 'Failed to find "' + table + '" in list of defined tables.'; }
 	if (!targetDef) { throw 'Failed to find "' + join + '" in list of defined tables.'; }
 
-	var sourceModel = this.models[model];
+	var sourceModel = this.models[table];
 	var targetModel = this.models[join];
 
 	var joinAlias = sourceDef.joins[join].as;
@@ -151,15 +148,15 @@ function joinModel(from, model, join) {
 	var sourceKey = sourceDef.joins[join].source_key || sourcePrimaryKey;
 	var targetKey = sourceDef.joins[join].target_key || targetPrimaryKey;
 
-	if (this.schema[model][model].indexOf(sourceKey) < 0) { throw 'Failed to find join column "' + sourceKey + '" in table "' + model + '".'; }
-	if (this.schema[model][join].indexOf(targetKey) < 0) { throw 'Failed to find join column "' + targetKey + '" in table "' + join + '".'; }
+	if (this.schema[table][table].indexOf(sourceKey) < 0) { throw 'Failed to find join column "' + sourceKey + '" in table "' + model + '".'; }
+	if (this.schema[table][join].indexOf(targetKey) < 0) { throw 'Failed to find join column "' + targetKey + '" in table "' + join + '".'; }
 
 	// Get intermediate table, if any.
 	var via = sourceDef.joins[join].via;
 
 	// Special logic to handle joining via an intermediate table.
 	if (via) {
-		from = joinModel.call(this, from, model, via);
+		from = joinModel.call(this, from, table, via);
 		return joinModel.call(this, from, via, join);
 	}
 
@@ -170,17 +167,17 @@ function joinModel(from, model, join) {
 
 
 // Apply where conditions and AND/OR logic.
-function createWhereClause(query, model, where) {
+function createWhereClause(query, spec) {
 	var that  = this;
-	var model = this.models[model];
+	var model = this.models[spec.table];
 
 	// "Where" is an outer array of AND conditions.
-	where.forEach(function(and) {
+	spec.filter.forEach(function(and) {
 		var orClauses = [];
 
 		// "And" is an inner array of OR conditions.
 		and.forEach(function(or) {
-			var model  = that.models[or.model];
+			var model  = that.models[or.table];
 			var clause = model[or.field][or.operator](or.value);
 			orClauses.push(clause);
 		});
