@@ -73,6 +73,7 @@ Qb.prototype.query = function(spec) {
 	console.log('\n')
 	console.log(query.toQuery().text);
 
+	this.lastQuery = query.toQuery();
 	return query.toQuery().text;
 };
 
