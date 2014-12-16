@@ -3,9 +3,17 @@ var sql = require('sql');
 
 
 
+// =============
+// Query builder
+// =============
+
+
+
 // Create the root constructor function.
 // The models object contains models defined by the sql package.
 // The schema object is a map of the db structure.
+// The definitions object is a copy of user-defined definitions.
+
 function Qb(definitions) {
 	this.models = {};
 	this.schema = {};
@@ -17,6 +25,7 @@ function Qb(definitions) {
 
 // Define models and relationships.
 // This is done just once to configure the Qb instance.
+
 Qb.prototype.define = function(definitions) {
 	var that = this;
 	this.definitions = definitions;
@@ -27,21 +36,18 @@ Qb.prototype.define = function(definitions) {
 		this.models[table] = sql.define(model);
 	}
 
-	// Create an object that maps all related columns to a model.
+	// Create "schema" which shows all fields that exist
+	// on, or can be joined to, each table.
 	for (var table in this.definitions) {
 		var schema = this.schema[table] = {};
 		var definition = this.definitions[table];
-
-		if (!definition) { throw 'Failed to find table "' + table + '" in schema definition.'; }
-
 		schema[table] = definition.columns.map(function(col) { 
 			return col.name; 
 		});
 
-		// Include columns that can be joined to a model.
+		// Include join columns.
 		for (join in definition.joins) {
 			var joinTable = that.definitions[join];
-			if (!joinTable) { throw 'Failed to find join table "' + join + '" in schema definition.'; }
 			schema[join] = joinTable.columns.map(function(col) { 
 				return col.name; 
 			});
@@ -51,21 +57,21 @@ Qb.prototype.define = function(definitions) {
 
 
 
-// Assemble SQL query from to spec.
+// Assemble SQL query to spec.
 Qb.prototype.query = function(spec) {
 	var that = this;
 
 	// Create models for each table in query spec.
 	querySetup.call(this, spec);
 
-	// Create a new query.
 	var query = this.models[spec.table].select([]);
 
 	select.call(this, query, spec);
 	createFromClause.call(this, query, spec);
 	createWhereClause.call(this, query, spec);
 
-	console.log(query.toQuery().text);
+	// console.log(query.toQuery().text);
+	console.log(spec.joins)
 };
 
 
@@ -93,7 +99,15 @@ function querySetup(spec, joined, alias) {
 	// Call function recursively for each nested join.
 	spec.joins.forEach(function(joinSpec) {
 		alias = that.definitions[spec.table].joins[joinSpec.table].as;
-		querySetup.call(that, joinSpec, joined, alias);
+		via   = that.definitions[spec.table].joins[joinSpec.table].via
+
+		if (via) {
+			var viaSpec = { table: via, joins: [{ table: joinSpec.table }] }
+			querySetup.call(that, joinSpec, joined, alias);
+		} else {
+			querySetup.call(that, joinSpec, joined, alias);
+		}
+
 	});
 }
 
@@ -107,9 +121,24 @@ function select(query, spec) {
 	});
 
 	query.select(fields);
-	
+
 	spec.joins.forEach(function(joinSpec) {
 		select.call(that, query, joinSpec);
+	});
+}
+
+
+
+function from(query, spec, from) {
+	var that = this;
+
+	if (!from) { from = spec.model; }
+	else {
+
+	}
+
+	spec.joins.forEach(function(joinSpec) {
+		from.call(that, query, joinSpec, from);
 	});
 }
 
