@@ -46,10 +46,9 @@ Qb.prototype.define = function(definitions) {
 			return col.name; 
 		});
 
-		// Include join columns and set default primary key.
+		// Include join columns.
 		for (join in definition.joins) {
 			var joinTable = that.definitions[join];
-			join.primary_key = join.primary_key || 'id';
 			schema[join] = joinTable.columns.map(function(col) { 
 				return col.name; 
 			});
