@@ -3,7 +3,10 @@
 var gulp       = require('gulp')
 ,   gutil      = require('gulp-util')
 ,   jshint     = require('gulp-jshint')
-,   stylish    = require('jshint-stylish');
+,   stylish    = require('jshint-stylish')
+,   nodemon    = require('gulp-nodemon')
+,   source     = require('vinyl-source-stream')
+,   browserify = require('browserify');
 
 
 // Run test and lint.
@@ -19,4 +22,33 @@ gulp.task('lint', function() {
   return gulp.src(['qb.js', 'test.js'])
     .pipe(jshint({}))
     .pipe(jshint.reporter(stylish));
+});
+
+
+// Start example API.
+gulp.task('start', function() {
+  nodemon({ script: 'example-api/bin/www', ignore: ['node_modules/'] })
+    .on('change', []) // tasks
+    .on('restart', function () {});
+});
+
+
+// Browserify example-app/app.js
+gulp.task('bundle', function() {
+  return browserify()
+    .transform('jadeify')
+    .add('./example-app/app.js')
+    .bundle()
+    .on('error', function(err) { 
+    	gutil.log('Browserify error:', new Error(err)); 
+    	this.emit('end');
+    })
+    .pipe(source('bundle.js'))
+    .pipe(gulp.dest('./example-app'));
+});
+
+
+// Rebundle on change.
+gulp.task('watch', function() {
+	gulp.watch(['./example-app/app.js', './example-app/templates/*'], ['bundle']);
 });
