@@ -2,6 +2,7 @@ var definitions = {
 
 	users: {
 		name: "users",
+		as: "Users",
 		columns: [
 			"id",
 			{ as: "Join date", name: "created_at" }
@@ -15,6 +16,7 @@ var definitions = {
 
 	petitions: {
 		name: "events",
+		as: "Petitions",
 		columns: [
 			"id",
 			{ name: "user_id", as: "Petition creator" },
@@ -28,7 +30,7 @@ var definitions = {
 	},
 
 	signatures: {
-		alias: "signatures",
+		as: "Signatures",
 		name: "signatures_users",
 		columns: [
 			"id",
@@ -46,6 +48,7 @@ var definitions = {
 
 	tags: {
 		name: "tags",
+		as: "Tags",
 		columns: [ "id", "name" ],
 		joins: {
 			users: { via: "taggings", as: "Users signed" },

@@ -3,20 +3,23 @@ fieldset
 
   div(class="row")
 
-      //- Select model.
-      div.select-model(class="form-group col-sm-6 col-xs-12")
-        label Select something to measure:
-        select(name="model" class="form-control")
-          option(selected disabled) ...
-          each table in schema
-            option(name=table.id) #{table.id}
+    //- Select model.
+    div.select-model(class="form-group col-sm-6 col-xs-12")
+      label Select something to measure:
+      select(name="model" class="form-control")
+        option(disabled selected) ...
+        each table in schema.toArray()
+          - var selected = model && model.id === table.id;
+          option(name=table.id selected=selected) #{table.id}
 
-      //- Select join.
-      div.select-join(class="form-group col-sm-6 col-xs-12")
-        label Select how to measure it:
-        select(name="join" class="form-control")
-          option(selected disabled) ...
-          each table in schema
-            option(name=table.id) #{table.id}
+    if (model)
+      div.select-fields(class="form-group col-sm-6 col-xs-12")
+        label Fields:
+        select(class="form-control")
+          - console.log(model)
+          each col, key in model.get('columns')
+            option(name=col.name) #{col.name}
+
+
 
  div(class="fieldsets")

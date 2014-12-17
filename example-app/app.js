@@ -16,20 +16,9 @@
 	// ==================================================
 
 	var Schema = Backbone.Collection.extend({
+		url: '/api/schema',
 		model: Table
 	});
-
-	Schema.prototype.bootstrap = function(definitions) {
-		for (var tableName in definitions) {
-			var table = new Table({
-				id: tableName,
-				name: definitions[tableName].name,
-				joins: definitions[tableName].joins,
-				columns: definitions[tableName].columns
-			});
-			this.add(table);
-		}
-	};
 
 
 
@@ -39,7 +28,7 @@
 	// Spec models.
 
 	var Spec = Backbone.Model.extend({
-		defaults: { table: null, fields: [], filters: [], joins: [] }
+		defaults: { table: null, fields: [], filters: [], joins: [], groupBys: [] }
 	});
 
 
@@ -101,12 +90,17 @@
 	};
 
 	Fieldset.prototype.render = function() {
-		this.$el.html(this.template({ schema: this.collection.toJSON() }));
+		this.$el.html(this.template({ 
+			schema: this.collection, 
+			model: this.model ? this.model : null
+		}));
 		this.$el.appendTo(this.parent.$el.find('.fieldsets').first());
 	};
 
 	Fieldset.prototype.selectModel = function() {
-		console.log('OKOKOK')
+		var tableName = this.$el.find('.select-model select').first().val();
+		this.model = schema.get(tableName);
+		this.render();
 	};
 
 
@@ -117,11 +111,11 @@
 	// GET request to /api/schema, but this avoid the
 	// Node dependency.
 
-	var definitions = require('../example-definitions');
 	var schema = new Schema();
-	schema.bootstrap(definitions);
-	console.log(schema.toJSON())
-
-	new Form({ el: '#app-goes-here' });
+	schema.on('sync', function() {
+		console.log(schema.toJSON());
+		new Form({ el: '#app-goes-here' });
+	});
+	schema.fetch();
 
 })()

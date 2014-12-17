@@ -16,7 +16,7 @@ var sql = require('sql');
 
 function Qb(definitions) {
 	this.models = {};
-	this.schema = {};
+	this.schema = [];
 	this.definitions = {};
 	if (definitions) { this.define(definitions); }
 }
@@ -28,31 +28,31 @@ function Qb(definitions) {
 
 Qb.prototype.define = function(definitions) {
 	var that = this;
-	this.definitions = definitions;
 
 	// Call sql.define on each model in definition.
-	for (var table in definitions) {
-		var model = normalize(definitions[table]);
-		this.models[table] = sql.define(model);
+	for (var def in definitions) {
+		this.definitions[def] = normalize(definitions[def]);
+		this.models[def] = sql.define(this.definitions[def]);
 	}
 
-	// Create "schema" which shows all fields that exist
-	// on, or can be joined to, each table.
+	// Populate "schema" with each table in definitions.
+	// Include arrays of columns and allowed join tables.
 
-	for (table in this.definitions) {
-		var schema = this.schema[table] = {};
-		var definition = this.definitions[table];
-		schema[table] = definition.columns.map(function(col) { 
-			return col.name; 
+	for (def in this.definitions) {
+		var definition = that.definitions[def];
+		var table      = { id: def, name: definition.as };
+		table.columns  = definition.columns.map(function(col) {
+			return col.property;
 		});
 
-		// Include join columns.
+		// Add array of tables that may be joined on table.
+		table.joins = [];
 		for (var join in definition.joins) {
-			var joinTable = that.definitions[join];
-			schema[join] = joinTable.columns.map(function(col) { 
-				return col.name; 
-			});
+			table.joins.push({ id: join, name: definition.joins[join].as });
 		}
+
+		// Add table to schema.
+		this.schema.push(table);
 	}
 };
 
@@ -207,6 +207,8 @@ function normalize(model) {
 	});
 
 	model.primary_key = model.primary_key || 'id';
+	model.as = model.as || model.name;
+
 	return model;
 }
 
