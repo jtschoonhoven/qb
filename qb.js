@@ -39,7 +39,7 @@ Qb.prototype.define = function(definitions) {
 	// Create "schema" which shows all fields that exist
 	// on, or can be joined to, each table.
 
-	for (var table in this.definitions) {
+	for (table in this.definitions) {
 		var schema = this.schema[table] = {};
 		var definition = this.definitions[table];
 		schema[table] = definition.columns.map(function(col) { 
@@ -47,7 +47,7 @@ Qb.prototype.define = function(definitions) {
 		});
 
 		// Include join columns.
-		for (join in definition.joins) {
+		for (var join in definition.joins) {
 			var joinTable = that.definitions[join];
 			schema[join] = joinTable.columns.map(function(col) { 
 				return col.name; 
@@ -69,7 +69,7 @@ Qb.prototype.query = function(spec) {
 	from.call(this, query, spec);
 	where.call(this, query, spec);
 
-	console.log('\n')
+	console.log('\n');
 	console.log(query.toQuery().text);
 
 	this.lastQuery = query.toQuery();
@@ -102,7 +102,7 @@ function querySetup(spec, joined, alias) {
 	// Call function recursively for each nested join.
 	spec.joins.forEach(function(joinSpec, index) {
 		alias   = that.definitions[spec.table].joins[joinSpec.table].as;
-		var via = that.definitions[spec.table].joins[joinSpec.table].via
+		var via = that.definitions[spec.table].joins[joinSpec.table].via;
 
 		// If "via" defines an intermediate table, alter the spec to
 		// join through that table.
@@ -201,9 +201,9 @@ function where(query, spec) {
 function normalize(model) {
 	model.columns = model.columns.map(function(col) {
 		if (typeof col === 'string') {
-			return { name: col, property: col }
+			return { name: col, property: col };
 		}
-		return { name: col.name, property: col.as || col.name }
+		return { name: col.name, property: col.as || col.name };
 	});
 
 	model.primary_key = model.primary_key || 'id';

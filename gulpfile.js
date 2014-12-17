@@ -1,5 +1,3 @@
-
-
 var gulp       = require('gulp')
 ,   gutil      = require('gulp-util')
 ,   jshint     = require('gulp-jshint')
@@ -17,19 +15,17 @@ gulp.task('test', ['lint'], function() {
 });
 
 
-// Lint test.
+// Lint.
 gulp.task('lint', function() {
-  return gulp.src(['qb.js', 'test.js'])
+  return gulp.src(['qb.js'])
     .pipe(jshint({}))
     .pipe(jshint.reporter(stylish));
 });
 
 
-// Start example API.
+// Start API.
 gulp.task('start', function() {
-  nodemon({ script: 'example-api/bin/www', ignore: ['node_modules/'] })
-    .on('change', []) // tasks
-    .on('restart', function () {});
+  nodemon({ script: 'example-api/app.js', ignore: ['node_modules/'] });
 });
 
 
@@ -50,5 +46,5 @@ gulp.task('bundle', function() {
 
 // Rebundle on change.
 gulp.task('watch', function() {
-	gulp.watch(['./example-app/app.js', './example-app/templates/*'], ['bundle']);
+	gulp.watch(['./example-app/app.js', './example-app/templates/*'], ['bundle', 'lint']);
 });

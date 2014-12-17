@@ -1,1 +1,22 @@
-div(class="container-fluid col-sm-11 col-sm-offset-1")
+fieldset
+  legend ok
+
+  div(class="row")
+
+      //- Select model.
+      div.select-model(class="form-group col-sm-6 col-xs-12")
+        label Select something to measure:
+        select(name="model" class="form-control")
+          option(selected disabled) ...
+          each table in schema
+            option(name=table.id) #{table.id}
+
+      //- Select join.
+      div.select-join(class="form-group col-sm-6 col-xs-12")
+        label Select how to measure it:
+        select(name="join" class="form-control")
+          option(selected disabled) ...
+          each table in schema
+            option(name=table.id) #{table.id}
+
+ div(class="fieldsets")
