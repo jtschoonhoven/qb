@@ -114,7 +114,7 @@
 	// ==================================================
 
 	// Get schema. Normally this would be returned by a 
-	// GET request to /api/schema, but I'm avoiding the
+	// GET request to /api/schema, but this avoid the
 	// Node dependency.
 
 	var definitions = require('../example-definitions');
