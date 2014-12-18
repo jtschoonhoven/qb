@@ -4,20 +4,27 @@ fieldset
   div(class="row")
 
     //- Select model.
-    div.select-model(class="form-group col-sm-6 col-xs-12")
-      label Table:
+    div.select-model(class="form-group col-sm-5 col-xs-12")
+      label Choose a thing:
       select(name="model" class="form-control")
         option(disabled selected) ...
         each table in schema.toJSON()
           - var selected = model && model.id === table.id;
-          option(name=table.name selected=selected) #{table.name}
+          option(value=table.name selected=selected) #{table.name}
 
     if (model)
-      div.select-fields(class="form-group col-sm-6 col-xs-12")
+      div.select-fields(class="form-group col-sm-2 col-xs-12")
         label Select:
-        select(class="form-control" multiple)
+        select(name="aggregate" class="form-control")
+          option(value="each") Each
+          option(value="count") Count of
+          option(value="sum") Sum of
+
+      div.select-fields(class="form-group col-sm-5 col-xs-12")
+        label Field:
+        select(name="field" class="form-control")
           each col in model.get('columns')
-            option(name=col) #{col}
+            option(value=col) #{col}
 
   .fieldsets
 

@@ -163,7 +163,6 @@
 	var schema = new Schema();
 
 	schema.on('sync', function() {
-		// schema.bootstrap();
 		new Form({ el: '#app-goes-here', collection: schema });
 	});
 	schema.fetch();
