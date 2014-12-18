@@ -19,27 +19,7 @@
 		url: '/api/schema',
 		model: Table
 	});
-
-	Schema.prototype.bootstrap = function(omit) {
-		// var that = this;
-		// omit = omit || [];
-
-		// this.forEach(function(table) {
-		// 	var joins = table.get('joins');
-		// 	omit
-
-		// 	var joinTables = joins.map(function(join) {
-		// 		join.columns = schema.get(join.id).get('columns');
-		// 		join.joins   = schema.get(join.id).get('joins');
-		// 		return new Table(join);
-		// 	});
-
-		// 	var joinSchema = new Schema(joinTables);
-
-		// 	// joinSchema.bootstrap();
-		// 	table.set('joins', joinSchema);
-		// });
-	};
+	
 
 
 	// Query Model
@@ -71,7 +51,8 @@
 
 	var Form = Backbone.View.extend({
 		template: require('./templates/form.jade'),
-		fieldsets: []
+		fieldsets: [],
+		events: { 'submit form': 'build' }
 	});
 
 	Form.prototype.initialize = function() {
@@ -84,10 +65,16 @@
 		var fieldset = new Fieldset({ 
 			parent: this, 
 			className: 'fieldset container-fluid col-sm-12',
-			collection: this.collection
+			collection: this.collection,
+			isRoot: true
 		});
 
 		this.fieldsets.push(fieldset);
+	};
+
+	Form.prototype.build = function(e) {
+		e.preventDefault();
+		console.log('ok');
 	};
 
 
@@ -103,20 +90,24 @@
 		fieldsets: [],
 		events: { 
 			'change .select-model select': 'selectModel',
-			'click .join-btn': 'joinModel'
+			'click .join-btn': 'joinModel',
+			'click .unjoin-btn' : 'unjoinModel'
 		}
 	});
 
 	Fieldset.prototype.initialize = function(params) {
 		this.parent = params.parent;
+		this.isRoot = params.isRoot;
 		this.$el.appendTo(this.parent.$el.find('.fieldsets').first());
 		this.render();
 	};
 
 	Fieldset.prototype.render = function() {
+		this.removeChildren();
 		this.$el.html(this.template({ 
 			schema: this.collection,
-			model: this.model ? this.model : null
+			model: this.model ? this.model : null,
+			isRoot: this.isRoot
 		}));
 	};
 
@@ -145,6 +136,20 @@
 		});
 
 		this.fieldsets.push(child);
+	};
+
+	Fieldset.prototype.unjoinModel = function(e) {
+		e.stopImmediatePropagation();
+		this.removeChildren().remove();
+	};
+
+	// Call remove on all child fieldsets.
+	Fieldset.prototype.removeChildren = function() {
+    _.each(this.childViews || [], function(child) { 
+      child.removeChildren();
+      Backbone.View.prototype.remove.call(child);
+    });
+    return this;
 	};
 
 

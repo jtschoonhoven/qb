@@ -1,11 +1,11 @@
 fieldset
-  legend= model ? model.get('name') : 'Select something'
+  legend= isRoot ? 'From ' + (model ? model.get('name') : 'something') : 'Join ' + (model ? model.get('name') : 'something')
 
   div(class="row")
 
     //- Select model.
     div.select-model(class="form-group col-sm-6 col-xs-12")
-      label Select something to measure:
+      label Table:
       select(name="model" class="form-control")
         option(disabled selected) ...
         each table in schema.toJSON()
@@ -14,15 +14,17 @@ fieldset
 
     if (model)
       div.select-fields(class="form-group col-sm-6 col-xs-12")
-        label Fields:
+        label Select:
         select(class="form-control" multiple)
           each col in model.get('columns')
             option(name=col) #{col}
 
-
-
   .fieldsets
 
-  if (model)
-    - var modelName = model.get('name');
-    a.join-btn(href="#" class="btn btn-default") Join something
+  div(class="btn-group")
+    if (model)
+      - var modelName = model.get('name');
+      a.join-btn(href="#" class="btn btn-default") Join something
+
+    if (!isRoot)
+      a.unjoin-btn(href="#" class="btn btn-default") Remove join
