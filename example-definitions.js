@@ -59,6 +59,7 @@ var definitions = {
 
 	taggings: {
 		name: "taggings",
+		as: "Taggings",
 		columns: [ "id", "tag_id", "taggable_id" ],
 		joins: {
 			petitions: { source_key: "taggable_id", type: "manyToOne" },

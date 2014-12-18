@@ -1,5 +1,5 @@
 fieldset
-  legend ok
+  legend= model ? model.get('name') : 'Select something'
 
   div(class="row")
 
@@ -8,18 +8,21 @@ fieldset
       label Select something to measure:
       select(name="model" class="form-control")
         option(disabled selected) ...
-        each table in schema.toArray()
+        each table in schema.toJSON()
           - var selected = model && model.id === table.id;
-          option(name=table.id selected=selected) #{table.id}
+          option(name=table.name selected=selected) #{table.name}
 
     if (model)
       div.select-fields(class="form-group col-sm-6 col-xs-12")
         label Fields:
-        select(class="form-control")
-          - console.log(model)
-          each col, key in model.get('columns')
-            option(name=col.name) #{col.name}
+        select(class="form-control" multiple)
+          each col in model.get('columns')
+            option(name=col) #{col}
 
 
 
- div(class="fieldsets")
+  .fieldsets
+
+  if (model)
+    - var modelName = model.get('name');
+    a.join-btn(href="#" class="btn btn-default") Join something

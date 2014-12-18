@@ -20,6 +20,26 @@
 		model: Table
 	});
 
+	Schema.prototype.bootstrap = function(omit) {
+		// var that = this;
+		// omit = omit || [];
+
+		// this.forEach(function(table) {
+		// 	var joins = table.get('joins');
+		// 	omit
+
+		// 	var joinTables = joins.map(function(join) {
+		// 		join.columns = schema.get(join.id).get('columns');
+		// 		join.joins   = schema.get(join.id).get('joins');
+		// 		return new Table(join);
+		// 	});
+
+		// 	var joinSchema = new Schema(joinTables);
+
+		// 	// joinSchema.bootstrap();
+		// 	table.set('joins', joinSchema);
+		// });
+	};
 
 
 	// Query Model
@@ -64,7 +84,7 @@
 		var fieldset = new Fieldset({ 
 			parent: this, 
 			className: 'fieldset container-fluid col-sm-12',
-			collection: schema
+			collection: this.collection
 		});
 
 		this.fieldsets.push(fieldset);
@@ -75,32 +95,56 @@
 	// Fieldset View
 	// ==================================================
 	// A fieldset contains input groups used to build the
-	// query. A fieldset may contain chid fieldsets.
+	// query. A fieldset may contain child fieldsets.
 
 	var Fieldset = Backbone.View.extend({
 		template: require('./templates/fieldset.jade'),
-		className: 'fieldset container-fluid col-sm-11 col-sm-offset-1',
+		className: 'fieldset container-fluid',
 		fieldsets: [],
-		events: { 'change .select-model select': 'selectModel' }
+		events: { 
+			'change .select-model select': 'selectModel',
+			'click .join-btn': 'joinModel'
+		}
 	});
 
 	Fieldset.prototype.initialize = function(params) {
 		this.parent = params.parent;
+		this.$el.appendTo(this.parent.$el.find('.fieldsets').first());
 		this.render();
 	};
 
 	Fieldset.prototype.render = function() {
 		this.$el.html(this.template({ 
-			schema: this.collection, 
+			schema: this.collection,
 			model: this.model ? this.model : null
 		}));
-		this.$el.appendTo(this.parent.$el.find('.fieldsets').first());
 	};
 
-	Fieldset.prototype.selectModel = function() {
+	Fieldset.prototype.selectModel = function(e) {
+		e.stopImmediatePropagation();
 		var tableName = this.$el.find('.select-model select').first().val();
-		this.model = schema.get(tableName);
+		this.model = this.collection.findWhere({ name: tableName });
 		this.render();
+	};
+
+	Fieldset.prototype.joinModel = function(e) {
+		e.stopImmediatePropagation();
+
+		// Bootstrap a new "schema" to use as child collection.
+		var joins = this.model.get('joins');
+		joinTables = joins.map(function(join) {
+			join.columns = schema.get(join.id).get('columns');
+			join.joins = schema.get(join.id).get('joins');
+			return new Table(join);
+		});
+
+		// Nest a child fieldset inside current fieldset.
+		var child = new Fieldset({
+			parent: this,
+			collection: new Schema(joinTables)
+		});
+
+		this.fieldsets.push(child);
 	};
 
 
@@ -112,9 +156,10 @@
 	// Node dependency.
 
 	var schema = new Schema();
+
 	schema.on('sync', function() {
-		console.log(schema.toJSON());
-		new Form({ el: '#app-goes-here' });
+		// schema.bootstrap();
+		new Form({ el: '#app-goes-here', collection: schema });
 	});
 	schema.fetch();
 
