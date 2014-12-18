@@ -44,6 +44,20 @@
 
 
 
+	// Backbone View Prototype
+	// ==================================================
+
+	Backbone.View.prototype.removeChildren = function() {
+    _.each(this.childViews || [], function(child) { 
+      child.removeChildren();
+      Backbone.View.prototype.remove.call(child);
+    });
+    this.childViews = [];
+    return this;
+	};
+
+
+
 	// Form View
 	// ==================================================
 	// The top level view of the app. A form is composed
@@ -51,7 +65,7 @@
 
 	var Form = Backbone.View.extend({
 		template: require('./templates/form.jade'),
-		fieldsets: [],
+		childViews: [],
 		events: { 'submit form': 'build' }
 	});
 
@@ -69,7 +83,7 @@
 			isRoot: true
 		});
 
-		this.fieldsets.push(fieldset);
+		this.childViews.push(fieldset);
 	};
 
 	Form.prototype.build = function(e) {
@@ -87,7 +101,7 @@
 	var Fieldset = Backbone.View.extend({
 		template: require('./templates/fieldset.jade'),
 		className: 'fieldset container-fluid',
-		fieldsets: [],
+		childViews: [],
 		events: { 
 			'change .select-model select': 'selectModel',
 			'click .join-btn': 'joinModel',
@@ -105,17 +119,62 @@
 	Fieldset.prototype.render = function() {
 		this.removeChildren();
 		this.$el.html(this.template({ 
-			schema: this.collection,
-			model: this.model ? this.model : null,
+			collection: this.collection,
+			model: this.model,
 			isRoot: this.isRoot
 		}));
 	};
 
 	Fieldset.prototype.selectModel = function(e) {
 		e.stopImmediatePropagation();
+
+		// Remove all child views;
+		this.removeChildren();
+
+		// Set this.model.
 		var tableName = this.$el.find('.select-model select').first().val();
-		this.model = this.collection.findWhere({ name: tableName });
-		this.render();
+		this.model = this.parent.collection.findWhere({ name: tableName });
+
+		// Create a schema from model joins.
+		var joins = this.model.get('joins');
+		joinTables = joins.map(function(join) {
+			join.columns = schema.get(join.id).get('columns');
+			join.joins = schema.get(join.id).get('joins');
+			return new Table(join);
+		});
+
+		var joinSchema = new Schema(joinTables);
+		this.model.set('joins', joinSchema);
+
+		// Add a Select input group to view.
+		var select = new Select({ 
+			parent: this,
+			model: this.model,
+			selector: '.selects',
+			View: Select,
+			isRoot: true
+		});
+		this.childViews.push(select);
+
+		// Add a GroupBy input group to view.
+		var groupBy = new GroupBy({ 
+			parent: this,
+			model: this.model,
+			selector: '.groupBys',
+			View: GroupBy,
+			isRoot: true
+		});
+		this.childViews.push(groupBy);
+
+		// Add a Filter input group to view.
+		var filter = new Filter({ 
+			parent: this,
+			model: this.model,
+			selector: '.filters',
+			View: Filter,
+			isRoot: true
+		});
+		this.childViews.push(filter);
 	};
 
 	Fieldset.prototype.joinModel = function(e) {
@@ -135,7 +194,7 @@
 			collection: new Schema(joinTables)
 		});
 
-		this.fieldsets.push(child);
+		this.childViews.push(child);
 	};
 
 	Fieldset.prototype.unjoinModel = function(e) {
@@ -143,14 +202,59 @@
 		this.removeChildren().remove();
 	};
 
-	// Call remove on all child fieldsets.
-	Fieldset.prototype.removeChildren = function() {
-    _.each(this.childViews || [], function(child) { 
-      child.removeChildren();
-      Backbone.View.prototype.remove.call(child);
-    });
-    return this;
+
+	// Input Group Views
+	// ==================================================
+
+	var InputGroup = Backbone.View.extend({
+		events: { 
+			'click .add-btn': 'addInput',
+			'click .remove-btn': 'remove'
+		}
+	});
+
+	InputGroup.prototype.initialize = function(params) {
+		this.parent = params.parent;
+		this.selector = params.selector;
+		this.View = params.View;
+		this.childViews = [];
+		this.isRoot = params.isRoot;
+		this.$el.appendTo(this.parent.$el.find(this.selector)).first();
+		this.render();
 	};
+
+	InputGroup.prototype.render = function() {
+		this.$el.html(this.template({ 
+			model: this.model, 
+			isRoot: this.isRoot 
+		}));
+	};
+
+	InputGroup.prototype.addInput = function() {
+		var newInput = new this.View({
+			View: this.View,
+			model: this.model,
+			parent: this.parent,
+			selector: this.selector
+		});
+
+		// Add new view to parent.childViews.
+		var siblings = this.parent.get('childViews');
+		siblings.push(newInput);
+		this.parent.set('childViews', siblings);
+	};
+
+	var Select = InputGroup.extend({
+		template: require('./templates/select.jade')
+	});
+
+	var GroupBy = InputGroup.extend({
+		template: require('./templates/groupBy.jade')
+	});
+
+	var Filter = InputGroup.extend({
+		template: require('./templates/filter.jade')
+	});
 
 
 	// Start App
