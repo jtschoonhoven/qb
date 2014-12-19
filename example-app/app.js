@@ -48,7 +48,8 @@
 	// ==================================================
 
 	Backbone.View.prototype.removeChildren = function() {
-    _.each(this.childViews || [], function(child) { 
+    _.each(this.childViews || [], function(child) {
+    	if (child.model) { child.model.destroy(); }
       child.removeChildren();
       Backbone.View.prototype.remove.call(child);
     });
@@ -66,10 +67,13 @@
 	var Form = Backbone.View.extend({
 		template: require('./templates/form.jade'),
 		childViews: [],
+		joined: new Schema(),
 		events: { 'submit form': 'build' }
 	});
 
 	Form.prototype.initialize = function() {
+		// Make this top level view available to all views.
+		Backbone.View.prototype.form = this;
 		this.render();
 	};
 
@@ -78,8 +82,7 @@
 
 		var join = new Join({ 
 			parent: this, 
-			className: 'fieldset container-fluid col-sm-12',
-			collection: this.collection,
+			collection: schema,
 			selector: '.joins',
 			isRoot: true
 		});
@@ -87,7 +90,7 @@
 
 		var select = new Select({ 
 			parent: this,
-			model: this.model,
+			collection: this.joined,
 			selector: '.selects',
 			View: Select,
 			isRoot: true
@@ -138,6 +141,7 @@
 		this.childViews = [];
 		this.isRoot = params.isRoot;
 		this.$el.appendTo(this.parent.$el.find(this.selector)).first();
+		this.listenTo(this.form.joined, 'add remove', this.render);
 		this.render();
 	};
 
@@ -147,14 +151,12 @@
 			model: this.model, 
 			isRoot: this.isRoot 
 		}));
-		console.log('ok')
 	};
 
 	InputGroup.prototype.addInput = function() {
 		var newInput = new this.View({
 			View: this.View,
 			model: this.model,
-			parent: this.parent,
 			selector: this.selector
 		});
 
@@ -219,8 +221,7 @@
 
 		var joinSchema = new Schema(joinTables);
 		this.model.set('joins', joinSchema);
-
-		this.render();
+		this.form.joined.add(this.model);
 	};
 
 
@@ -234,7 +235,7 @@
 	var schema = new Schema();
 
 	schema.on('sync', function() {
-		new Form({ el: '#app-goes-here', collection: schema });
+		new Form({ el: '#app-goes-here' });
 	});
 	schema.fetch();
 
