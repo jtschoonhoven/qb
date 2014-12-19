@@ -1,0 +1,24 @@
+fieldset
+  legend= (isRoot ? 'From ' : 'Include ') + (model ? model.get('name') : 'something')
+
+  //- Select model.
+  div.select-model(class="form-group")
+    label(class="col-sm-1 col-xs-12 control-label")= isRoot ? 'From:' : 'Include:'
+
+    div(class="col-sm-3 col-xs-6")
+      select(name="model" class="form-control")
+        option(disabled selected) something
+        each table in collection.toJSON()
+          - var isSelected = model && model.id === table.id
+          option(value=table.name selected=isSelected) #{table.name}
+
+    div(class="btn-group col-sm-8 col-xs-6")
+      if (model)
+        a.add-btn(href="#" class="btn btn-default")
+          span(class="glyphicon glyphicon-plus")
+      if (!isRoot)
+        a.remove-btn(href="#" class="btn btn-default")
+          span(class="glyphicon glyphicon-minus")
+
+  .joins
+

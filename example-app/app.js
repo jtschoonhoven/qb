@@ -61,7 +61,7 @@
 	// Form View
 	// ==================================================
 	// The top level view of the app. A form is composed
-	// of many nested fieldsets.
+	// of many nested joins.
 
 	var Form = Backbone.View.extend({
 		template: require('./templates/form.jade'),
@@ -76,77 +76,15 @@
 	Form.prototype.render = function() {
 		this.$el.html(this.template());
 
-		var fieldset = new Fieldset({ 
+		var join = new Join({ 
 			parent: this, 
 			className: 'fieldset container-fluid col-sm-12',
 			collection: this.collection,
+			selector: '.joins',
 			isRoot: true
 		});
+		this.childViews.push(join);
 
-		this.childViews.push(fieldset);
-	};
-
-	Form.prototype.build = function(e) {
-		e.preventDefault();
-		console.log('ok');
-	};
-
-
-
-	// Fieldset View
-	// ==================================================
-	// A fieldset contains input groups used to build the
-	// query. A fieldset may contain child fieldsets.
-
-	var Fieldset = Backbone.View.extend({
-		template: require('./templates/fieldset.jade'),
-		className: 'fieldset container-fluid',
-		childViews: [],
-		events: { 
-			'change .select-model select': 'selectModel',
-			'click .join-btn': 'joinModel',
-			'click .unjoin-btn' : 'unjoinModel'
-		}
-	});
-
-	Fieldset.prototype.initialize = function(params) {
-		this.parent = params.parent;
-		this.isRoot = params.isRoot;
-		this.$el.appendTo(this.parent.$el.find('.fieldsets').first());
-		this.render();
-	};
-
-	Fieldset.prototype.render = function() {
-		this.removeChildren();
-		this.$el.html(this.template({ 
-			collection: this.collection,
-			model: this.model,
-			isRoot: this.isRoot
-		}));
-	};
-
-	Fieldset.prototype.selectModel = function(e) {
-		e.stopImmediatePropagation();
-
-		// Remove all child views;
-		this.removeChildren();
-
-		// Set this.model.
-		var tableName = this.$el.find('.select-model select').first().val();
-		this.model = this.parent.collection.findWhere({ name: tableName });
-
-		// Create a schema from model joins.
-		var joins = this.model.get('joins');
-		joinTables = joins.map(function(join) {
-			join.columns = schema.get(join.id).get('columns');
-			join.joins = schema.get(join.id).get('joins');
-			return new Table(join);
-		});
-
-		var joinSchema = new Schema(joinTables);
-		this.model.set('joins', joinSchema);
-
-		// Add a Select input group to view.
 		var select = new Select({ 
 			parent: this,
 			model: this.model,
@@ -156,50 +94,29 @@
 		});
 		this.childViews.push(select);
 
-		// Add a GroupBy input group to view.
-		var groupBy = new GroupBy({ 
-			parent: this,
-			model: this.model,
-			selector: '.groupBys',
-			View: GroupBy,
-			isRoot: true
-		});
-		this.childViews.push(groupBy);
+		// var groupBy = new GroupBy({ 
+		// 	parent: this,
+		// 	model: this.model,
+		// 	selector: '.groupBys',
+		// 	View: GroupBy,
+		// 	isRoot: true
+		// });
+		// this.childViews.push(groupBy);
 
-		// Add a Filter input group to view.
-		var filter = new Filter({ 
-			parent: this,
-			model: this.model,
-			selector: '.filters',
-			View: Filter,
-			isRoot: true
-		});
-		this.childViews.push(filter);
+		// var filter = new Filter({ 
+		// 	parent: this,
+		// 	model: this.model,
+		// 	selector: '.filters',
+		// 	View: Filter,
+		// 	isRoot: true
+		// });
+		// this.childViews.push(filter);
+
 	};
 
-	Fieldset.prototype.joinModel = function(e) {
-		e.stopImmediatePropagation();
-
-		// Bootstrap a new "schema" to use as child collection.
-		var joins = this.model.get('joins');
-		joinTables = joins.map(function(join) {
-			join.columns = schema.get(join.id).get('columns');
-			join.joins = schema.get(join.id).get('joins');
-			return new Table(join);
-		});
-
-		// Nest a child fieldset inside current fieldset.
-		var child = new Fieldset({
-			parent: this,
-			collection: new Schema(joinTables)
-		});
-
-		this.childViews.push(child);
-	};
-
-	Fieldset.prototype.unjoinModel = function(e) {
-		e.stopImmediatePropagation();
-		this.removeChildren().remove();
+	Form.prototype.build = function(e) {
+		e.preventDefault();
+		console.log('ok');
 	};
 
 
@@ -209,7 +126,8 @@
 	var InputGroup = Backbone.View.extend({
 		events: { 
 			'click .add-btn': 'addInput',
-			'click .remove-btn': 'remove'
+			'click .remove-btn': 'removeInput',
+			'change .select-model select': 'selectModel'
 		}
 	});
 
@@ -224,10 +142,12 @@
 	};
 
 	InputGroup.prototype.render = function() {
-		this.$el.html(this.template({ 
+		this.$el.html(this.template({
+			collection: this.collection,
 			model: this.model, 
 			isRoot: this.isRoot 
 		}));
+		console.log('ok')
 	};
 
 	InputGroup.prototype.addInput = function() {
@@ -244,6 +164,10 @@
 		this.parent.set('childViews', siblings);
 	};
 
+	InputGroup.prototype.removeInput = function() {
+		this.remove();
+	};
+
 	var Select = InputGroup.extend({
 		template: require('./templates/select.jade')
 	});
@@ -255,6 +179,49 @@
 	var Filter = InputGroup.extend({
 		template: require('./templates/filter.jade')
 	});
+
+	var Join = InputGroup.extend({
+		template: require('./templates/join.jade')
+	});
+
+	// Overwrite default behavior for addInput.
+	Join.prototype.addInput = function(e) {
+		e.stopImmediatePropagation();
+		var join = new Join({
+			parent: this,
+			selector: '.joins',
+			collection: this.model.get('joins')
+		});
+		this.childViews.push(join);
+	};
+
+	// Overwrite default behavior for remove.
+	Join.prototype.removeInput = function(e) {
+		if (e) { e.stopImmediatePropagation(); }
+		this.removeChildren().remove();
+	}
+
+	Join.prototype.selectModel = function(e) {
+		e.stopImmediatePropagation();
+		this.removeChildren();
+
+		// Set this.model.
+		var tableName = this.$el.find('.select-model select').first().val();
+		this.model = this.collection.findWhere({ name: tableName });
+
+		// Create a schema from model joins.
+		var joins = this.model.get('joins');
+		joinTables = joins.map(function(join) {
+			join.columns = schema.get(join.id).get('columns');
+			join.joins = schema.get(join.id).get('joins');
+			return new Table(join);
+		});
+
+		var joinSchema = new Schema(joinTables);
+		this.model.set('joins', joinSchema);
+
+		this.render();
+	};
 
 
 	// Start App
