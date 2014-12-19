@@ -201,7 +201,7 @@
 	Join.prototype.removeInput = function(e) {
 		if (e) { e.stopImmediatePropagation(); }
 		this.removeChildren().remove();
-	}
+	};
 
 	Join.prototype.selectModel = function(e) {
 		e.stopImmediatePropagation();
