@@ -4,12 +4,15 @@ fieldset
   div.select-model(class="form-group")
     label(class="col-sm-1 col-xs-2 control-label") From:
 
-    div(class="col-sm-3 col-xs-10")
+    div(class="col-sm-3 col-xs-7")
       select(name="model" class="form-control")
         option(disabled selected) ...
         each table in collection.toJSON()
           - var isSelected = model && model.id === table.id
           option(value=table.name selected=isSelected) #{table.name}
+
+    div(class="btn-group row col-sm-2 col-xs-3")
+      a.include-btn(href="#" class="btn btn-default") Include
 
   .selects
   .groupBys
