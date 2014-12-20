@@ -8,7 +8,7 @@ fieldset
     div(class="col-sm-3 col-xs-6")
       select(name="model" class="form-control")
         option(disabled selected) something
-        each table in collection.toJSON()
+        each table in schema.toJSON()
           - var isSelected = model && model.id === table.id
           option(value=table.name selected=isSelected) #{table.name}
 

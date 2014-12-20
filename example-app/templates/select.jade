@@ -19,8 +19,10 @@ div.select-fields(class="form-group")
   div(class="col-sm-6 col-sm-offset-0 col-xs-10 col-xs-offset-2")
     select(name="model" class="form-control")
       option(disabled selected) ...
-      //- each col in model.get('columns')
-      //-   option #{col}
+      each table in joined.toJSON()
+        optgroup(label=table.alias)
+          each col in table.columns
+            option(value=col) #{col}
 
   //- div(class="btn-group col-sm-2 col-sm-offset-0 col-xs-10 col-xs-offset-2 row")
   //-   a.add-btn(href="#" class="btn btn-de fault col-sm-6 col-xs-2")
