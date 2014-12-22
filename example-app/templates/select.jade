@@ -1,32 +1,29 @@
+- console.log(selected)
 
 div.select-fields(class="form-group")
   - var labelText = isRoot ? 'Select:' : 'and:'
   label(class="col-sm-1 col-xs-2 control-label") #{labelText}
 
   div(class="col-sm-3 col-xs-10")
-    select(name="aggregate" class="form-control")
-      optgroup(label="Default")
-        option(value="each") Each
-      optgroup(label="Aggregators")
-        option(value="count") Count of
-        option(value="sum") Sum of
-      optgroup(label="Date formatters")
-        option(value="day") Day of
-        option(value="month") Month of
-        option(vlaue="quarter") Quarter of
-        option(value="year") Year of
+    select.select-1(name="aggregate" class="form-control")
+      each group in functionsList
+        optgroup(label=group.label)
+          each opt in group.options
+            - var isSelected = selected[0] && selected[0].group === group.label && selected[0].opt === opt.val
+            option(value=opt.val selected=isSelected) #{opt.label}
 
   div(class="col-sm-6 col-sm-offset-0 col-xs-10 col-xs-offset-2")
-    select(name="model" class="form-control")
+    select.select-2(name="model" class="form-control")
       option(disabled selected) ...
       each table in joined.toJSON()
         optgroup(label=table.alias)
           each col in table.columns
-            option(value=col) #{col}
+            - var isSelected = selected[1] && selected[1].group === table.alias && selected[1].opt === col
+            option(value=col selected=isSelected) #{col}
 
-  //- div(class="btn-group col-sm-2 col-sm-offset-0 col-xs-10 col-xs-offset-2 row")
-  //-   a.add-btn(href="#" class="btn btn-de fault col-sm-6 col-xs-2")
-  //-     span(class="glyphicon glyphicon-plus")
-  //-   if !isRoot
-  //-     a.remove-btn(href="#" class="btn btn-default col-sm-6 col-xs-2")
-  //-       span(class="glyphicon glyphicon-minus")
+  div(class="btn-group col-sm-2 col-sm-offset-0 col-xs-10 col-xs-offset-2 row")
+    a.add-btn(href="#" class="btn btn-default col-sm-6 col-xs-2")
+      span(class="glyphicon glyphicon-plus")
+    if !isRoot
+      a.remove-btn(href="#" class="btn btn-default col-sm-6 col-xs-2")
+        span(class="glyphicon glyphicon-minus")

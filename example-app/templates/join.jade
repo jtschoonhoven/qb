@@ -8,9 +8,14 @@ fieldset
     div(class="col-sm-3 col-xs-6")
       select(name="model" class="form-control")
         option(disabled selected) something
-        each table in schema.toJSON()
-          - var isSelected = model && model.id === table.id
-          option(value=table.name selected=isSelected) #{table.name}
+        if isRoot
+          each table in schema.toJSON()
+            - var isSelected = model && model.get('name') === table.id
+            option(value=table.id selected=isSelected) #{table.name}
+        else
+          each table in parent.model.get('joins')
+            - var isSelected = model && model.get('name') === table.id
+            option(value=table.id selected=isSelected) #{table.name}
 
     div(class="btn-group col-sm-8 col-xs-6")
       if (model)
