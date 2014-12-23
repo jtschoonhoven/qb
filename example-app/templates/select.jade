@@ -1,4 +1,3 @@
-- console.log(selected)
 
 div.select-fields(class="form-group")
   - var labelText = isRoot ? 'Select:' : 'and:'
@@ -15,10 +14,10 @@ div.select-fields(class="form-group")
   div(class="col-sm-6 col-sm-offset-0 col-xs-10 col-xs-offset-2")
     select.select-2(name="model" class="form-control")
       option(disabled selected) ...
-      each table in joined.toJSON()
-        optgroup(label=table.alias)
-          each col in table.columns
-            - var isSelected = selected[1] && selected[1].group === table.alias && selected[1].opt === col
+      each table in joined.toArray()
+        optgroup(label=table.get('alias') data-join-id=table.id)
+          each col in table.get('columns')
+            - var isSelected = selected[1] && selected[1].group === table.get('alias') && selected[1].opt === col
             option(value=col selected=isSelected) #{col}
 
   div(class="btn-group col-sm-2 col-sm-offset-0 col-xs-10 col-xs-offset-2 row")

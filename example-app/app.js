@@ -40,18 +40,24 @@
 	var schema = new Schema();
 
 
+
 	// Extend Backbone.View
 	// ==================================================
 
 	Backbone.View.prototype.removeChildJoins = function() {
-    _.each(this.joins || [], function(join) {
+		console.log(this.joins.toArray())
+    _.each(this.joins.toArray() || [], function(join) {
     	if (join.model) { joined.remove(join.model); }
       join.removeChildJoins();
       Backbone.View.prototype.remove.call(join);
     });
 
-    this.joins = [];
+    this.joins.reset();
     return this;
+	};
+
+	Backbone.View.prototype.render = function() {
+		this.$el.html(this.template(this));
 	};
 
 	// Make schemas available to all views.
@@ -60,23 +66,42 @@
 
 
 
+	// Fieldset View
+	// ==================================================
+	// Selects, filters and groups all nest inside of one
+	// of these parent fieldsets.
+
+	var Fieldset = Backbone.View.extend({
+		collection: new Backbone.Collection(),
+		template: require('./templates/fieldset.jade')
+	});
+
+	Fieldset.prototype.initialize = function(params) {
+		this.name = params.name;
+		this.render();
+		var child = new params.View({ isRoot: true, View: params.View, id: _.uniqueId() });
+		this.collection.add(child);
+	};
+
+
+
 	// QueryBuilder View
 	// ==================================================
 	// The top level view of the app.
 
 	var QueryBuilder = Backbone.View.extend({
-		template : require('./templates/query-builder.jade'),
-		joins    : [],
-		selects  : [],
-		filters  : [],
-		groups   : []
+		template: require('./templates/query-builder.jade')
 	});
 
 	QueryBuilder.prototype.render = function() {
 		this.$el.html(this.template(this));
 		var joinView = new JoinView({ parent: this, isRoot: true });
-		this.joins.push(joinView);
+		this.joins = new Backbone.Collection();
+		this.joins.add(joinView);
 	};
+
+	var queryBuilder = new QueryBuilder({ el: '#app-goes-here' });
+	window.qb = queryBuilder;
 
 
 
@@ -85,7 +110,7 @@
 
 	var JoinView = Backbone.View.extend({
 		template: require('./templates/join.jade'),
-		joins: [],
+		joins: new Backbone.Collection(),
 		events: { 
 			'change .select-model select': 'selectModel',
 			'click .add-btn' : 'addJoin',
@@ -94,14 +119,10 @@
 	});
 
 	JoinView.prototype.initialize = function(params) {
-		this.parent = params.parent;
-		this.isRoot = params.isRoot;
+		this.parent    = params.parent;
+		this.isRoot    = params.isRoot;
 		this.$el.appendTo(this.parent.$el.find('.joins')).first();
 		this.render();
-	};
-
-	JoinView.prototype.render = function() {
-		this.$el.html(this.template(this));
 	};
 
 	JoinView.prototype.selectModel = function(e) {
@@ -124,19 +145,19 @@
 
 		joined.add(this.model);
 
+		this.joinId = this.model.id;
 		this.render();
 
 		// Add a select view if not already present.
-		if (queryBuilder.selects.length === 0) {
-			var select = new Select({ isRoot: true, View: Select });
-			queryBuilder.selects.push(select);
+		if (!queryBuilder.selects) {
+			queryBuilder.selects = new Fieldset({ name: 'Select', View: Select, el: $('.selects') });
 		}
 	};
 
 	JoinView.prototype.addJoin = function(e) {
 		e.stopImmediatePropagation();
 		var newJoin = new JoinView({ parent: this });
-		this.joins.push(newJoin);
+		this.joins.add(newJoin);
 	};
 
 	JoinView.prototype.removeJoin = function(e) {
@@ -146,8 +167,7 @@
 	};
 
 
-
-	// Select, Filter, & Group Views
+	// InputGroup Views: Select, Filter, & Group
 	// ==================================================
 	// The above are deeply similar. To keep things nice
 	// and DRY, all inherit from a parent view called
@@ -157,7 +177,7 @@
 		events: { 
 			'change select': 'selectOption',
 			'click .add-btn': 'addInput',
-			'click .remove-btn': 'remove',
+			'click .remove-btn': 'removeInput',
 		}
 	});
 
@@ -165,13 +185,9 @@
 		this.isRoot = params.isRoot;
 		this.View = params.View;
 		this.selected = [];
-		this.$el.appendTo(queryBuilder.$el.find(this.selector)).first();
+		this.$el.appendTo($(this.selector));
 		this.listenTo(joined, 'add remove', this.render);
 		this.render();
-	};
-
-	InputGroup.prototype.render = function() {
-		this.$el.html(this.template(this));
 	};
 
 	// Get optgroup and value for each select in el.
@@ -181,7 +197,8 @@
 		this.$el.find('select').each(function(i) {
 			that.selected[i] = {
 				opt: $(this).val(),
-				group: $(this.options[this.selectedIndex]).closest('optgroup').prop('label')
+				group: $(this.options[this.selectedIndex]).closest('optgroup').prop('label'),
+				joinId: $(this.options[this.selectedIndex]).closest('optgroup').data('join-id')
 			};
 		});
 		this.render();
@@ -189,12 +206,19 @@
 
 	InputGroup.prototype.addInput = function(e) {
 		e.stopImmediatePropagation();
-		var newInput = new this.View({ View: Select });
-		queryBuilder.selects.push(newInput);
+		var newInput = new this.View({ View: Select, id: _.uniqueId() });
+		queryBuilder.selects.collection.add(newInput);
+	};
+
+	InputGroup.prototype.removeInput = function(e) {
+		e.stopImmediatePropagation();
+		queryBuilder.selects.collection.remove(this.id);
+		this.remove();
 	};
 
 	var Select = InputGroup.extend({
-		selector: '.selects',
+		selector: '.selects .input-groups',
+		collection: queryBuilder.selects,
 		template: require('./templates/select.jade')
 	});
 
@@ -240,10 +264,8 @@
 	// returned by a GET request to /api/schema, but this
 	// avoid the Node dependency.
 
-	var queryBuilder = new QueryBuilder({ el: '#app-goes-here' });
-
 	schema.on('sync', function() {
-		console.log(schema.toJSON());
+		// console.log(schema.toJSON());
 		queryBuilder.render();
 	});
 
