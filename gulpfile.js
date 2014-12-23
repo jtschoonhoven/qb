@@ -46,5 +46,5 @@ gulp.task('bundle', function() {
 
 // Rebundle on change.
 gulp.task('watch', function() {
-	gulp.watch(['./example-app/app.js', './example-app/templates/*'], ['bundle', 'lint']);
+	gulp.watch(['./example-app/app.js', './example-app/templates/*'], ['bundle']);
 });
