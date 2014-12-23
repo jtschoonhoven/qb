@@ -15,7 +15,7 @@ div.select-model(class="form-group")
           - var joinables = tables.get(parent.model.get(0).value).get('joins')
           each joinable in joinables
             - var isSelected = model && joinable.id === model.get(0).value
-            option(value=joinable.id) #{joinable.name}
+            option(value=joinable.id selected=isSelected) #{joinable.name}
 
   div(class="btn-group col-sm-8 col-xs-6")
     if (model)
@@ -25,4 +25,4 @@ div.select-model(class="form-group")
       a.remove-btn(href="#" class="btn btn-default")
         span(class="glyphicon glyphicon-minus")
 
-.joins
+.content

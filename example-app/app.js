@@ -6,23 +6,16 @@
 (function() {
 
 
-
 	// =========================
 	// Query Builder Example App
 	// =========================
 
 
-
-	// Models
+	// Collections & Models
 	// ==================================================
 
 	// Store data from form.
 	var Selection = Backbone.Model.extend();
-
-
-
-	// Collections
-	// ==================================================
 
 	// A map of defined tables, fetched from server.
 	var Tables = Backbone.Collection.extend({
@@ -39,10 +32,8 @@
 
 
 
-	// Views
+	// Extend Backbone View
 	// ==================================================
-
-
 
 	// Set default (prototype) view behavior.
 	Backbone.View.prototype.initialize = function(params) {
@@ -64,7 +55,9 @@
 
 
 
-	// Top level view.
+	// Top Level View
+	// ==================================================
+
 	var QueryBuilder = Backbone.View.extend({
 		el: '#app-goes-here',
 		template: require('./templates/query-builder.jade'),
@@ -81,7 +74,9 @@
 
 
 
-	// Base class for joins, selects, etc.
+	// Input View Base Class
+	// ==================================================
+
 	var InputView = Backbone.View.extend();
 
 	InputView.prototype.onSelect = function() {};
@@ -94,12 +89,24 @@
 
 	InputView.prototype.addInput = function(e) {
 		e.stopImmediatePropagation();
+
+		if (!this.isRoot) {
+			var targetEl = this.$el.find('.content');
+			console.log(this.el)
+			var fieldset = new this.ParentView({ el: targetEl });
+			fieldset.render();
+			return;
+		}
+
 		var targetEl = this.parent.$el.find('.content').first();
-		var siblingView = new this.View({ 
+
+		var siblingView = new this.View({
+			ParentView: this.ParentView,
 			View: this.View, 
 			parent: this, 
 			collection: this.collection
 		});
+
 		siblingView.render().$el.appendTo(targetEl);
 		this.parent.childViews.push(siblingView);
 	};
@@ -152,6 +159,10 @@
 	];
 
 
+
+	// Input Views
+	// ==================================================
+
 	var JoinView = InputView.extend({
 		template: require('./templates/join.jade')
 	});
@@ -169,7 +180,9 @@
 
 
 
-	// Wrapper/parent for a set of inputs.
+	// Fieldset Views
+	// ==================================================
+
 	var Fieldset = Backbone.View.extend({
 		template: require('./templates/fieldset.jade')
 	});
@@ -177,10 +190,11 @@
 	Fieldset.prototype.onRender = function() {
 		var targetEl  = this.$el.find('.content').first();
 		var childView = new this.ChildView({ 
+			View: this.ChildView,
+			ParentView: this.View,
 			isRoot: true, 
-			View: this.ChildView, 
 			parent: this,
-			collection: this.collection
+			collection: this.collection,
 		});
 		this.childViews.push(childView);
 		childView.render().$el.appendTo(targetEl);
@@ -189,14 +203,16 @@
 	var JoinSet = Fieldset.extend({
 		ChildView: JoinView,
 		collection: new Joins(),
-		name: 'Include'
 	});
+
+	JoinSet.prototype.View = JoinSet;
 
 	var SelectSet = Fieldset.extend({
 		ChildView: SelectView,
-		collection: new Selects(),
-		name: 'Select'
+		collection: new Selects()
 	});
+
+	SelectSet.prototype.View = SelectSet;
 
 	var FilterSet = Fieldset.extend({});
 	var GroupSet  = Fieldset.extend({});
