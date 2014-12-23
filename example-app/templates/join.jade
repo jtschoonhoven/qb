@@ -1,7 +1,8 @@
 
 //- Select model.
 div.select-model(class="form-group")
-  label(class="col-sm-1 col-xs-12 control-label") Include:
+  - var labelText = isRoot ? 'Include:' : 'and:'
+  label(class="col-sm-1 col-xs-12 control-label") #{labelText}
 
   div(class="col-sm-3 col-xs-6")
     select(name="model" class="form-control")
@@ -10,6 +11,11 @@ div.select-model(class="form-group")
           each table in tables.toJSON()
             - var isSelected = model && table.id === model.get(0).value
             option(value=table.id selected=isSelected) #{table.name}
+        else
+          - var joinables = tables.get(parent.model.get(0).value).get('joins')
+          each joinable in joinables
+            - var isSelected = model && joinable.id === model.get(0).value
+            option(value=joinable.id) #{joinable.name}
 
   div(class="btn-group col-sm-8 col-xs-6")
     if (model)

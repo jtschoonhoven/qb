@@ -17,7 +17,8 @@ div.select-fields(class="form-group")
         each join in qb.joinSet.collection.toJSON()
           optgroup(label=join[0].label data-join-id=join.id)
             each column in tables.get(join[0].value).get('columns')
-              option=column
+              - var isSelected = model && String(model.get(1).joinId) === join.id && model.get(1).value === column
+              option(value=column selected=isSelected) #{column}
 
 
   div(class="btn-group col-sm-2 col-sm-offset-0 col-xs-10 col-xs-offset-2 row")

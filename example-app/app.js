@@ -95,7 +95,11 @@
 	InputView.prototype.addInput = function(e) {
 		e.stopImmediatePropagation();
 		var targetEl = this.parent.$el.find('.content').first();
-		var siblingView = new this.View({ View: this.View, parent: this });
+		var siblingView = new this.View({ 
+			View: this.View, 
+			parent: this, 
+			collection: this.collection
+		});
 		siblingView.render().$el.appendTo(targetEl);
 		this.parent.childViews.push(siblingView);
 	};
@@ -107,7 +111,7 @@
 
 		if (!this.model) { 
 			this.model = new Selection({ id: _.uniqueId() }); 
-			this.parent.collection.add(this.model);
+			this.collection.add(this.model);
 		}
 
 		this.$el.find('select').each(function(i) {
@@ -172,7 +176,12 @@
 
 	Fieldset.prototype.onRender = function() {
 		var targetEl  = this.$el.find('.content').first();
-		var childView = new this.ChildView({ isRoot: true, View: this.ChildView, parent: this });
+		var childView = new this.ChildView({ 
+			isRoot: true, 
+			View: this.ChildView, 
+			parent: this,
+			collection: this.collection
+		});
 		this.childViews.push(childView);
 		childView.render().$el.appendTo(targetEl);
 	};
