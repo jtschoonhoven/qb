@@ -92,6 +92,14 @@
 		'click .remove-btn' : 'removeInput'
 	};
 
+	InputView.prototype.addInput = function(e) {
+		e.stopImmediatePropagation();
+		var targetEl = this.parent.$el.find('.content').first();
+		var siblingView = new this.View({ View: this.View, parent: this });
+		siblingView.render().$el.appendTo(targetEl);
+		this.parent.childViews.push(siblingView);
+	};
+
 	// Get data from each select in group & store in model.
 	InputView.prototype.selectInput = function(e) {
 		e.stopImmediatePropagation();
@@ -164,9 +172,9 @@
 
 	Fieldset.prototype.onRender = function() {
 		var targetEl  = this.$el.find('.content').first();
-		var childView = new this.ChildView({ isRoot: true, el: targetEl, parent: this });
+		var childView = new this.ChildView({ isRoot: true, View: this.ChildView, parent: this });
 		this.childViews.push(childView);
-		childView.render();
+		childView.render().$el.appendTo(targetEl);
 	};
 
 	var JoinSet = Fieldset.extend({
