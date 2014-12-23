@@ -6,237 +6,269 @@
 (function() {
 
 
+	// =========================
+	// Query Builder Example App
+	// =========================
+
+
+	// Models & Collections
+	// ==================================================
+	// Join:   Single join used in the current query.
+	// Table:  Single table defined to Query Builder.
+	// Joined: Collection of joins used in the query.
+	// Schema: Collection of defined tables in DB.
+
 	var Table = Backbone.Model.extend({
 		defaults: { id: null, name: null, columns: [], joins: [] }
 	});
 
-
-
-	// DB Schema
-	// ==================================================
+	var Join = Backbone.Model.extend({
+		initialize: function() { this.id = _.uniqueId(); },
+		defaults: { alias: null, columns: null }
+	});
 
 	var Schema = Backbone.Collection.extend({
 		url: '/api/schema',
 		model: Table
 	});
-	
 
-
-	// Query Model
-	// ==================================================
-	// Child model. A query is composed of many nested 
-	// Spec models.
-
-	var Spec = Backbone.Model.extend({
-		defaults: { table: null, fields: [], filters: [], joins: [], groupBys: [] }
+	var Joined = Backbone.Collection.extend({
+		model: Join
 	});
 
-
-
-	// Query Model
-	// ==================================================
-	// The top level model of the app. Contains nested
-	// child Specs.
-
-	var Query = Spec.extend({
-		url: '/api/build'
-	});
+	var joined = new Joined();
+	var schema = new Schema();
 
 
 
-	// Backbone View Prototype
+	// Extend Backbone.View
 	// ==================================================
 
-	Backbone.View.prototype.removeChildren = function() {
-    _.each(this.childViews || [], function(child) {
-    	if (child.model) { child.model.destroy(); }
-      child.removeChildren();
-      Backbone.View.prototype.remove.call(child);
+	Backbone.View.prototype.removeChildJoins = function() {
+		console.log(this.joins.toArray())
+    _.each(this.joins.toArray() || [], function(join) {
+    	if (join.model) { joined.remove(join.model); }
+      join.removeChildJoins();
+      Backbone.View.prototype.remove.call(join);
     });
-    this.childViews = [];
+
+    this.joins.reset();
     return this;
 	};
 
+	Backbone.View.prototype.render = function() {
+		this.$el.html(this.template(this));
+	};
+
+	// Make schemas available to all views.
+	Backbone.View.prototype.schema = schema;
+	Backbone.View.prototype.joined = joined;
 
 
-	// Form View
+
+	// Fieldset View
 	// ==================================================
-	// The top level view of the app. A form is composed
-	// of many nested joins.
+	// Selects, filters and groups all nest inside of one
+	// of these parent fieldsets.
 
-	var Form = Backbone.View.extend({
-		template: require('./templates/form.jade'),
-		childViews: [],
-		joined: new Schema(),
-		events: { 'submit form': 'build' }
+	var Fieldset = Backbone.View.extend({
+		collection: new Backbone.Collection(),
+		template: require('./templates/fieldset.jade')
 	});
 
-	Form.prototype.initialize = function() {
-		// Make this top level view available to all views.
-		Backbone.View.prototype.form = this;
+	Fieldset.prototype.initialize = function(params) {
+		this.name = params.name;
+		this.render();
+		var child = new params.View({ isRoot: true, View: params.View, id: _.uniqueId() });
+		this.collection.add(child);
+	};
+
+
+
+	// QueryBuilder View
+	// ==================================================
+	// The top level view of the app.
+
+	var QueryBuilder = Backbone.View.extend({
+		template: require('./templates/query-builder.jade')
+	});
+
+	QueryBuilder.prototype.render = function() {
+		this.$el.html(this.template(this));
+		var joinView = new JoinView({ parent: this, isRoot: true });
+		this.joins = new Backbone.Collection();
+		this.joins.add(joinView);
+	};
+
+	var queryBuilder = new QueryBuilder({ el: '#app-goes-here' });
+	window.qb = queryBuilder;
+
+
+
+	// Join View
+	// ==================================================
+
+	var JoinView = Backbone.View.extend({
+		template: require('./templates/join.jade'),
+		joins: new Backbone.Collection(),
+		events: { 
+			'change .select-model select': 'selectModel',
+			'click .add-btn' : 'addJoin',
+			'click .remove-btn' : 'removeJoin'
+		}
+	});
+
+	JoinView.prototype.initialize = function(params) {
+		this.parent    = params.parent;
+		this.isRoot    = params.isRoot;
+		this.$el.appendTo(this.parent.$el.find('.joins')).first();
 		this.render();
 	};
 
-	Form.prototype.render = function() {
-		this.$el.html(this.template());
+	JoinView.prototype.selectModel = function(e) {
+		e.stopImmediatePropagation();
+		this.removeChildJoins();
 
-		var join = new Join({ 
-			parent: this, 
-			collection: schema,
-			selector: '.joins',
-			isRoot: true
+		if (this.model) { joined.remove(this.model); }
+
+		// Retrieve selected model from this.collection.
+		var tableId = this.$el.find('select').first().val();
+		var alias   = this.$el.find('select option:selected').text();
+		var table   = schema.get(tableId);
+
+		this.model = new Join({
+			name: tableId,
+			alias: alias,
+			columns: table.get('columns'),
+			joins: table.get('joins')
 		});
-		this.childViews.push(join);
 
-		var select = new Select({ 
-			parent: this,
-			collection: this.joined,
-			selector: '.selects',
-			View: Select,
-			isRoot: true
-		});
-		this.childViews.push(select);
+		joined.add(this.model);
 
-		// var groupBy = new GroupBy({ 
-		// 	parent: this,
-		// 	model: this.model,
-		// 	selector: '.groupBys',
-		// 	View: GroupBy,
-		// 	isRoot: true
-		// });
-		// this.childViews.push(groupBy);
+		this.joinId = this.model.id;
+		this.render();
 
-		// var filter = new Filter({ 
-		// 	parent: this,
-		// 	model: this.model,
-		// 	selector: '.filters',
-		// 	View: Filter,
-		// 	isRoot: true
-		// });
-		// this.childViews.push(filter);
-
+		// Add a select view if not already present.
+		if (!queryBuilder.selects) {
+			queryBuilder.selects = new Fieldset({ name: 'Select', View: Select, el: $('.selects') });
+		}
 	};
 
-	Form.prototype.build = function(e) {
-		e.preventDefault();
-		console.log('ok');
+	JoinView.prototype.addJoin = function(e) {
+		e.stopImmediatePropagation();
+		var newJoin = new JoinView({ parent: this });
+		this.joins.add(newJoin);
+	};
+
+	JoinView.prototype.removeJoin = function(e) {
+		e.stopImmediatePropagation();
+		this.removeChildJoins().remove();
+		this.model.destroy();
 	};
 
 
-	// Input Group Views
+	// InputGroup Views: Select, Filter, & Group
 	// ==================================================
+	// The above are deeply similar. To keep things nice
+	// and DRY, all inherit from a parent view called
+	// InputGroup.
 
 	var InputGroup = Backbone.View.extend({
 		events: { 
+			'change select': 'selectOption',
 			'click .add-btn': 'addInput',
 			'click .remove-btn': 'removeInput',
-			'change .select-model select': 'selectModel'
 		}
 	});
 
 	InputGroup.prototype.initialize = function(params) {
-		this.parent = params.parent;
-		this.selector = params.selector;
-		this.View = params.View;
-		this.childViews = [];
 		this.isRoot = params.isRoot;
-		this.$el.appendTo(this.parent.$el.find(this.selector)).first();
-		this.listenTo(this.form.joined, 'add remove', this.render);
+		this.View = params.View;
+		this.selected = [];
+		this.$el.appendTo($(this.selector));
+		this.listenTo(joined, 'add remove', this.render);
 		this.render();
 	};
 
-	InputGroup.prototype.render = function() {
-		this.$el.html(this.template({
-			collection: this.collection,
-			model: this.model, 
-			isRoot: this.isRoot 
-		}));
-	};
-
-	InputGroup.prototype.addInput = function() {
-		var newInput = new this.View({
-			View: this.View,
-			model: this.model,
-			selector: this.selector
+	// Get optgroup and value for each select in el.
+	InputGroup.prototype.selectOption = function(e) {
+		e.stopImmediatePropagation();
+		var that = this;
+		this.$el.find('select').each(function(i) {
+			that.selected[i] = {
+				opt: $(this).val(),
+				group: $(this.options[this.selectedIndex]).closest('optgroup').prop('label'),
+				joinId: $(this.options[this.selectedIndex]).closest('optgroup').data('join-id')
+			};
 		});
-
-		// Add new view to parent.childViews.
-		var siblings = this.parent.get('childViews');
-		siblings.push(newInput);
-		this.parent.set('childViews', siblings);
+		this.render();
 	};
 
-	InputGroup.prototype.removeInput = function() {
+	InputGroup.prototype.addInput = function(e) {
+		e.stopImmediatePropagation();
+		var newInput = new this.View({ View: Select, id: _.uniqueId() });
+		queryBuilder.selects.collection.add(newInput);
+	};
+
+	InputGroup.prototype.removeInput = function(e) {
+		e.stopImmediatePropagation();
+		queryBuilder.selects.collection.remove(this.id);
 		this.remove();
 	};
 
 	var Select = InputGroup.extend({
+		selector: '.selects .input-groups',
+		collection: queryBuilder.selects,
 		template: require('./templates/select.jade')
 	});
 
-	var GroupBy = InputGroup.extend({
-		template: require('./templates/groupBy.jade')
-	});
+	Select.prototype.functionsList = [
+		{ 
+			label: 'Default', 
+			options: [
+				{ label: 'Each', val: 'each' }
+			]
+		},{ 
+			label: 'Aggregators', 
+			options: [
+				{ label: 'Count of', val: 'count' }, 
+				{ label: 'Sum of', val: 'sum' }] 
+		},{ 
+			label: 'Date formatters', 
+			options: [
+				{ label: 'Day of', val: 'day' }, 
+				{ label: 'Month of', val: 'month' }, 
+				{ label: 'Quarter of', val: 'quarter' }, 
+				{ label: 'Year of', val: 'quarter' }
+			]
+		}
+	];
 
-	var Filter = InputGroup.extend({
-		template: require('./templates/filter.jade')
-	});
+	// var Group = InputGroup.extend({
+	// 	View: Group,
+	// 	selector: '.groups',
+	// 	template: require('./templates/groupBy.jade')
+	// });
 
-	var Join = InputGroup.extend({
-		template: require('./templates/join.jade')
-	});
-
-	// Overwrite default behavior for addInput.
-	Join.prototype.addInput = function(e) {
-		e.stopImmediatePropagation();
-		var join = new Join({
-			parent: this,
-			selector: '.joins',
-			collection: this.model.get('joins')
-		});
-		this.childViews.push(join);
-	};
-
-	// Overwrite default behavior for remove.
-	Join.prototype.removeInput = function(e) {
-		if (e) { e.stopImmediatePropagation(); }
-		this.removeChildren().remove();
-	}
-
-	Join.prototype.selectModel = function(e) {
-		e.stopImmediatePropagation();
-		this.removeChildren();
-
-		// Set this.model.
-		var tableName = this.$el.find('.select-model select').first().val();
-		this.model = this.collection.findWhere({ name: tableName });
-
-		// Create a schema from model joins.
-		var joins = this.model.get('joins');
-		joinTables = joins.map(function(join) {
-			join.columns = schema.get(join.id).get('columns');
-			join.joins = schema.get(join.id).get('joins');
-			return new Table(join);
-		});
-
-		var joinSchema = new Schema(joinTables);
-		this.model.set('joins', joinSchema);
-		this.form.joined.add(this.model);
-	};
+	// var Filter = InputGroup.extend({
+	// 	View: Filter,
+	// 	selector: '.filters',
+	// 	template: require('./templates/filter.jade')
+	// });
 
 
-	// Start App
+
+	// Start app
 	// ==================================================
-
-	// Get schema. Normally this would be returned by a 
-	// GET request to /api/schema, but this avoid the
-	// Node dependency.
-
-	var schema = new Schema();
+	// Get schema and render view. Normally this would be 
+	// returned by a GET request to /api/schema, but this
+	// avoid the Node dependency.
 
 	schema.on('sync', function() {
-		new Form({ el: '#app-goes-here' });
+		// console.log(schema.toJSON());
+		queryBuilder.render();
 	});
+
 	schema.fetch();
 
 })()
