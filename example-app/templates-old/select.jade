@@ -5,15 +5,20 @@ div.select-fields(class="form-group")
 
   div(class="col-sm-3 col-xs-10")
     select.select-1(name="aggregate" class="form-control")
-      each optgroup in functionsList
-        optgroup(label=optgroup.group)
-          each option in optgroup.options
-            - var isSelected = model && model.get(0).group === optgroup.group && model.get(0).value === option.value
-            option(value=option.value selected=isSelected) #{option.label}
+      each group in functionsList
+        optgroup(label=group.label)
+          each opt in group.options
+            - var isSelected = selected[0] && selected[0].group === group.label && selected[0].opt === opt.val
+            option(value=opt.val selected=isSelected) #{opt.label}
 
   div(class="col-sm-6 col-sm-offset-0 col-xs-10 col-xs-offset-2")
     select.select-2(name="model" class="form-control")
       option(disabled selected) ...
+      each table in joined.toArray()
+        optgroup(label=table.get('alias') data-join-id=table.id)
+          each col in table.get('columns')
+            - var isSelected = selected[1] && selected[1].group === table.get('alias') && selected[1].opt === col
+            option(value=col selected=isSelected) #{col}
 
   div(class="btn-group col-sm-2 col-sm-offset-0 col-xs-10 col-xs-offset-2 row")
     a.add-btn(href="#" class="btn btn-default col-sm-6 col-xs-2")

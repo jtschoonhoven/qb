@@ -1,29 +1,22 @@
-fieldset
-  legend= (isRoot ? 'From ' : 'Include ') + (model ? model.get('name') : 'something')
 
-  //- Select model.
-  div.select-model(class="form-group")
-    label(class="col-sm-1 col-xs-12 control-label")= isRoot ? 'From:' : 'Include:'
+//- Select model.
+div.select-model(class="form-group")
+  label(class="col-sm-1 col-xs-12 control-label") Include:
 
-    div(class="col-sm-3 col-xs-6")
-      select(name="model" class="form-control")
-        option(disabled selected) something
+  div(class="col-sm-3 col-xs-6")
+    select(name="model" class="form-control")
+      option(disabled selected) something
         if isRoot
-          each table in schema.toJSON()
-            - var isSelected = model && model.get('name') === table.id
-            option(value=table.id selected=isSelected) #{table.name}
-        else
-          each table in parent.model.get('joins')
-            - var isSelected = model && model.get('name') === table.id
+          each table in tables.toJSON()
+            - var isSelected = model && table.id === model.get(0).value
             option(value=table.id selected=isSelected) #{table.name}
 
-    div(class="btn-group col-sm-8 col-xs-6")
-      if (model)
-        a.add-btn(href="#" class="btn btn-default")
-          span(class="glyphicon glyphicon-plus")
-      if (!isRoot)
-        a.remove-btn(href="#" class="btn btn-default")
-          span(class="glyphicon glyphicon-minus")
+  div(class="btn-group col-sm-8 col-xs-6")
+    if (model)
+      a.add-btn(href="#" class="btn btn-default")
+        span(class="glyphicon glyphicon-plus")
+    if (!isRoot)
+      a.remove-btn(href="#" class="btn btn-default")
+        span(class="glyphicon glyphicon-minus")
 
-  .joins
-
+.joins
