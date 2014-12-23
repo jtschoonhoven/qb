@@ -95,9 +95,12 @@
 	// Get data from each select in group & store in model.
 	InputView.prototype.selectInput = function(e) {
 		e.stopImmediatePropagation();
-
 		var that = this;
-		if (!this.model) { this.model = new Selection(); }
+
+		if (!this.model) { 
+			this.model = new Selection({ id: _.uniqueId() }); 
+			this.parent.collection.add(this.model);
+		}
 
 		this.$el.find('select').each(function(i) {
 			var select = {
@@ -114,20 +117,7 @@
 	};
 
 
-
-	var JoinView = InputView.extend({
-		template: require('./templates/join.jade')
-	});
-
-	JoinView.prototype.onSelect = function() {
-		qb.selectSet.render();
-	};
-
-	var SelectView = InputView.extend({
-		template: require('./templates/select.jade')
-	});
-
-	SelectView.prototype.functionsList = [
+	InputView.prototype.functionsList = [
 		{ 
 			group: 'Default', 
 			options: [
@@ -149,6 +139,19 @@
 		}
 	];
 
+
+	var JoinView = InputView.extend({
+		template: require('./templates/join.jade')
+	});
+
+	JoinView.prototype.onSelect = function() {
+		qb.selectSet.render();
+	};
+
+	var SelectView = InputView.extend({
+		template: require('./templates/select.jade')
+	});
+
 	var FilterView = InputView.extend({});
 	var GroupView = InputView.extend({});
 
@@ -161,7 +164,7 @@
 
 	Fieldset.prototype.onRender = function() {
 		var targetEl  = this.$el.find('.content').first();
-		var childView = new this.ChildView({ isRoot: true, el: targetEl });
+		var childView = new this.ChildView({ isRoot: true, el: targetEl, parent: this });
 		this.childViews.push(childView);
 		childView.render();
 	};

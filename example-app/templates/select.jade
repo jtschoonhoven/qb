@@ -14,6 +14,11 @@ div.select-fields(class="form-group")
   div(class="col-sm-6 col-sm-offset-0 col-xs-10 col-xs-offset-2")
     select.select-2(name="model" class="form-control")
       option(disabled selected) ...
+        each join in qb.joinSet.collection.toJSON()
+          optgroup(label=join[0].label data-join-id=join.id)
+            each column in tables.get(join[0].value).get('columns')
+              option=column
+
 
   div(class="btn-group col-sm-2 col-sm-offset-0 col-xs-10 col-xs-offset-2 row")
     a.add-btn(href="#" class="btn btn-default col-sm-6 col-xs-2")
