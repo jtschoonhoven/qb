@@ -14,28 +14,26 @@
 	// Collections & Models
 	// ==================================================
 
-	// Store data from form.
 	var Selection = Backbone.Model.extend();
 
-	// A map of defined tables, fetched from server.
+
 	var Tables = Backbone.Collection.extend({
 		url: '/api/schema'
 	});
 
+
 	window.tables = new Tables();
 	Backbone.View.prototype.tables = window.tables;
 
-	var Joins = Backbone.Collection.extend({});
-	var Selects = Backbone.Collection.extend({});
-	var Filters = Backbone.Collection.extend({});
-	var Groups = Backbone.Collection.extend({});
+	var Joins = Backbone.Collection.extend();
+	var Selects = Backbone.Collection.extend();
 
 
 
 	// Extend Backbone View
 	// ==================================================
 
-	// Set default (prototype) view behavior.
+	// Default init behavior.
 	Backbone.View.prototype.initialize = function(params) {
 		_.extend(this, params);
 		this.childViews = [];
@@ -43,6 +41,7 @@
 	};
 
 
+	// Default render behavior.
 	Backbone.View.prototype.render = function() {
 		this.$el.html(this.template(this));
 		this.trigger('render');
@@ -50,6 +49,7 @@
 	};
 
 
+	// Noop to be overwritten with listener declarations.
 	Backbone.View.prototype.listen = function() {};
 
 
@@ -76,9 +76,10 @@
 
 
 
-	// Top Level View
+	// QueryBuilder View
 	// ==================================================
 
+	// The top level view of the app.
 	var QueryBuilder = Backbone.View.extend({
 		el: '#app-goes-here',
 		template: require('./templates/query-builder.jade'),
@@ -88,6 +89,8 @@
 	QueryBuilder.prototype.listen = function() {
 		var that = this;
 
+		// On render, create child fieldsets for joins
+		// and selects. Only render joinSet for now.
 		this.listenTo(this, 'render', function() {
 			that.joinSet = new JoinSet({ 
 				el: '.joins', 
@@ -106,6 +109,7 @@
 	};
 
 
+	// Init view and store in global for easier debug.
 	window.qb = new QueryBuilder();
 
 
@@ -215,12 +219,10 @@
 		template: require('./templates/join.jade')
 	});
 
+
 	var SelectView = InputView.extend({
 		template: require('./templates/select.jade')
 	});
-
-	var FilterView = InputView.extend({});
-	var GroupView = InputView.extend({});
 
 
 
@@ -230,6 +232,7 @@
 	var Fieldset = Backbone.View.extend({
 		template: require('./templates/fieldset.jade')
 	});
+
 
 	Fieldset.prototype.listen = function() {
 		var that = this;
