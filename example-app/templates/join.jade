@@ -1,5 +1,4 @@
 
-//- Select model.
 div(class="form-group")
   - var labelText = isRoot ? 'Include:' : 'and:'
   label(class="col-sm-1 col-xs-12 control-label") #{labelText}
@@ -14,8 +13,9 @@ div(class="form-group")
         else
           - var joinables = tables.get(parent.model.get(0).value).get('joins')
           each joinable in joinables
+            - console.log(parent.model)
             - var isSelected = model && joinable.id === model.get(0).value
-            option(value=joinable.id selected=isSelected) #{joinable.name}
+            option(value=joinable.id data-join-id=parent.model.id selected=isSelected) #{joinable.name}
 
   div(class="btn-group col-sm-8 col-xs-6")
     if (model)

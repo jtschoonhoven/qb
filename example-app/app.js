@@ -186,8 +186,8 @@
 			var select = {
 				value  : $(this).val(),
 				label  : $(this.options[this.selectedIndex]).text(),
-				group  : $(this.options[this.selectedIndex]).closest('optgroup').prop('label'),
-				joinId : $(this.options[this.selectedIndex]).closest('optgroup').data('join-id')
+				joinId : $(this.options[this.selectedIndex]).data('join-id'),
+				group  : $(this.options[this.selectedIndex]).closest('optgroup').prop('label')
 			};
 			that.model.set(i, select);
 		});
