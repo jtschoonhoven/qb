@@ -123,17 +123,18 @@
 	var QueryBuilder = Backbone.View.extend({
 		el: '#app-goes-here',
 		template: require('./templates/query-builder.jade'),
+		alert: require('./templates/browserOnly.jade'),
 		events: { 'submit': 'build' }
 	});
 
 
 	// Submit form and fetch SQL from server.
 	QueryBuilder.prototype.build = function(e) {
-		e.stopImmediatePropagation();
+		e.preventDefault();
 
-		$.ajax({
-			url: '/'
-		})
+		if (browserOnly) { return $('#messages').html(this.alert()); }
+
+		$.ajax({})
 	};
 
 
@@ -359,22 +360,29 @@
 	SelectSet.prototype.View = SelectSet;
 
 
-	var FilterSet = Fieldset.extend({});
-	var GroupSet  = Fieldset.extend({});
-
-
 
 	// Start app
 	// ==================================================
-	// Fetch schema then render root view.
+	// Fetch the schema then render the root view. This
+	// code is meant to run regardless of whether
+	// QueryBuilder is actually available via API (on
+	// Github Pages for example), so if the fetch to the
+	// server fails, use cached schema instead. This
+	// way the UI will function normally, though it will
+	// not be able to reach the server to retrive SQL.
 
-	tables.on('error', function() { warnServerUnavailable(); });
+	var browserOnly = false;
+	var cachedSchema = require('./cached-schema.json');
+
 	tables.on('sync', function() { qb.render(); });
+	tables.on('error', function() { serverUnavailable(); });
 	tables.fetch();
 
-
-	function warnServerUnavailable() {
-
+	function serverUnavailable() {
+		tables.reset(cachedSchema);
+		browserOnly = true;
+		qb.render();
 	}
+
 
 })()

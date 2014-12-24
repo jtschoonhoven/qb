@@ -34,6 +34,7 @@ gulp.task('start', function() {
 
 
 // Create cached schema for use without Node server.
+// Prepend "module.exports" so that Browserify can require it.
 gulp.task('cache', function() {
   var qb = new Qb(definitions);
   var schema = JSON.stringify(qb.schema, null, 1);
