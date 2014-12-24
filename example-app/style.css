@@ -23,3 +23,11 @@ legend {
 	width: auto;
 	border: none;
 }
+
+.joins fieldset {
+	background-image: linear-gradient(to right, #FDFDFD 30%, #009688);
+}
+
+.selects fieldset {
+	background-image: linear-gradient(to right, #FDFDFD 30%, #FF5722);
+}

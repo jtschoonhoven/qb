@@ -95,7 +95,7 @@
 			that.joinSet = new JoinSet({ 
 				el: '.joins', 
 				isRoot: true, 
-				collection: new Joins() 
+				collection: new Joins(),
 			});
 
 			that.selectSet = new SelectSet({ 
@@ -149,7 +149,7 @@
 				el: this.$el.find('.content'),
 				collection: this.collection, 
 				model: this.model,
-				isRoot: true
+				isRoot: true,
 			});
 			return fieldset.render();
 		}
