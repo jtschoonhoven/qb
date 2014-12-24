@@ -5,21 +5,23 @@ var express      = require('express')
 ,   ejs          = require('ejs')
 ,   app          = express();
 
+
 // ===========
 // Example API
 // ===========
 
+
 // This is a simple Node server that demonstrates
-// how Query Builder works on the backend. It
+// how QueryBuilder might work on the backend. It
 // exposes two API endpoints. /api/schema returns
 // a map of the database defined in
 // example-definitions.js and /api/build accepts
 // query parameters and returns raw SQL.
 
 
-// ======
+
 // Config
-// ======
+// ==================================================
 
 app.engine('html', require('ejs').renderFile);
 app.use(bodyParser.json());
@@ -29,9 +31,8 @@ app.use(express.static(path.join(__dirname, '../')));
 
 
 
-// =============
 // Query Builder
-// =============
+// ==================================================
 
 var definitions = require('../example-definitions');
 var Qb = require('../qb');
@@ -39,12 +40,11 @@ var qb = new Qb(definitions);
 
 
 
-// ======
-// ROUTES
-// ======
+// Routes
+// ==================================================
 
 // API endpoint to accept QB parameters and return SQL.
-app.post('api/build', function(req, res) {
+app.post('/api/build', function(req, res) {
 	var spec = req.body;
 	var sql = qb.query(spec);
 	res.type('text/plain').send(sql);
@@ -63,9 +63,8 @@ app.get('*', function(req, res) {
 
 
 
-// ======
-// SERVER
-// ======
+// Server
+// ==================================================
 
 var server = app.listen(3000, function() {
   console.log('Express server listening on port 3000');

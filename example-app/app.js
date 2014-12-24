@@ -65,7 +65,6 @@
 	// These helper functions will be available to every
 	// view in the app.
 
-
 	// Default init behavior. Listen() is a recyclable
 	// function meant to contain event listener setup.
 	Backbone.View.prototype.initialize = function(params) {
@@ -131,7 +130,10 @@
 	// Submit form and fetch SQL from server.
 	QueryBuilder.prototype.build = function(e) {
 		e.stopImmediatePropagation();
-		console.log('TODO');
+
+		$.ajax({
+			url: '/'
+		})
 	};
 
 
@@ -364,6 +366,7 @@
 
 	// Start app
 	// ==================================================
+	// Fetch schema then render root view.
 
 	tables.on('sync', function() { qb.render(); });
 	tables.fetch();
