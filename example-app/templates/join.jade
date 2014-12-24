@@ -21,7 +21,7 @@ div.select-model(class="form-group")
     if (model)
       a.add-btn(href="#" class="btn btn-default")
         span(class="glyphicon glyphicon-plus")
-    if (!isRoot)
+    if (!isRoot || qb.joinSet.collection.length > 1)
       a.remove-btn(href="#" class="btn btn-default")
         span(class="glyphicon glyphicon-minus")
 

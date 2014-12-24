@@ -148,7 +148,8 @@
 			var fieldset = new this.ParentView({ 
 				el: this.$el.find('.content'),
 				collection: this.collection, 
-				model: this.model 
+				model: this.model,
+				isRoot: true
 			});
 			return fieldset.render();
 		}
