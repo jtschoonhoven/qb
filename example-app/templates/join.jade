@@ -8,12 +8,12 @@ div(class="form-group")
       option(disabled selected) something
         if isRoot
           each table in tables.toJSON()
-            - var isSelected = model && table.id === model.get(0).value
+            - var isSelected = model && table.id === model.get('table')
             option(value=table.id selected=isSelected) #{table.name}
         else
-          - var joinables = tables.get(parent.model.get(0).value).get('joins')
+          - var joinables = tables.get(parent.model.get('table')).get('joins')
           each joinable in joinables
-            - var isSelected = model && joinable.id === model.get(0).value
+            - var isSelected = model && joinable.id === model.get('table')
             option(value=joinable.id data-join-id=parent.model.id selected=isSelected) #{joinable.name}
 
   div(class="btn-group col-sm-8 col-xs-6")

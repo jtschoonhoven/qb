@@ -11,21 +11,42 @@
 	// =========================
 
 
-	// Collections & Models
+	// Models
 	// ==================================================
 
-	var Selection = Backbone.Model.extend();
+	var Join = Backbone.Model.extend();
 
+	Join.prototype.setAttributes = function(input) {
+		var table  = input[0].value;
+		var joinId = input[0].joinId;
+		var alias  = input[0].label;
+		this.set({ table: table, joinId: joinId, alias: alias });
+	};
+
+
+	var Select = Backbone.Model.extend();
+
+	Select.prototype.setAttributes = function(input) {
+		var func   = input[0].value;
+		var joinId = input[1].joinId;
+		var field  = input[1].value;
+		this.set({ func: func, joinId: joinId, field: field });
+	};
+
+
+
+
+	// Collections
+	// ==================================================
 
 	var Tables = Backbone.Collection.extend({
 		url: '/api/schema'
 	});
 
-
-	window.tables = new Tables();
-	Backbone.View.prototype.tables = window.tables;
+	var tables = new Tables();
 
 	var Joins = Backbone.Collection.extend();
+
 	var Selects = Backbone.Collection.extend();
 
 
@@ -39,6 +60,9 @@
 		this.childViews = [];
 		this.listen();
 	};
+
+	// Make tables available inside templates.
+	Backbone.View.prototype.tables = tables;
 
 
 	// Default render behavior.
@@ -149,6 +173,7 @@
 	};
 
 
+	// Add a new input group to the DOM.
 	InputView.prototype.addInput = function(e) {
 		e.stopImmediatePropagation();
 
@@ -175,22 +200,31 @@
 	};
 
 
-	// Get data from each select in group & store in model.
+	// Create/set this.model from user selections in the DOM.
 	InputView.prototype.selectInput = function(e) {
 		e.stopImmediatePropagation();
 		var that = this;
 
-		if (!this.model) { this.model = new Selection({ id: _.uniqueId() }); }
-
+		// Grab specified attributes from each input in form.
+		var selected = {};
 		this.$el.find('select').each(function(i) {
-			var select = {
+			var selection = {
 				value  : $(this).val(),
 				label  : $(this.options[this.selectedIndex]).text(),
 				joinId : $(this.options[this.selectedIndex]).data('join-id'),
 				group  : $(this.options[this.selectedIndex]).closest('optgroup').prop('label')
 			};
-			that.model.set(i, select);
+			selected[i] = selection;
 		});
+
+		// Create this.model if not exists.
+		if (!this.model) { 
+			this.model = new this.Model({ id: Number(_.uniqueId()) }); 
+		}
+
+		// setAttributes is a function that parses input from form
+		// and sets attributes on this.model.
+		this.model.setAttributes(selected);
 
 		this.collection.add(this.model);
 		this.render();
@@ -225,12 +259,14 @@
 	// ==================================================
 
 	var JoinView = InputView.extend({
-		template: require('./templates/join.jade')
+		template: require('./templates/join.jade'),
+		Model: Join
 	});
 
 
 	var SelectView = InputView.extend({
-		template: require('./templates/select.jade')
+		template: require('./templates/select.jade'),
+		Model: Select
 	});
 
 

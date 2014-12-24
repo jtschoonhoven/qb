@@ -8,16 +8,16 @@ div(class="form-group")
       each optgroup in functionsList
         optgroup(label=optgroup.group)
           each option in optgroup.options
-            - var isSelected = model && model.get(0).group === optgroup.group && model.get(0).value === option.value
+            - var isSelected = model && model.get('func') === option.value
             option(value=option.value selected=isSelected) #{option.label}
 
   div(class="col-sm-6 col-sm-offset-0 col-xs-10 col-xs-offset-2")
     select.select-2(name="model" class="form-control")
       option(disabled selected) ...
         each join in qb.joinSet.collection.toJSON()
-          optgroup(label=join[0].label)
-            each column in tables.get(join[0].value).get('columns')
-              - var isSelected = model && String(model.get(1).joinId) === join.id && model.get(1).value === column
+          optgroup(label=join.alias)
+            each column in tables.get(join.table).get('columns')
+              - var isSelected = model && model.get('joinId') === join.id && model.get('field') === column
               option(value=column data-join-id=join.id selected=isSelected) #{column}
 
 
