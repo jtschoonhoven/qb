@@ -17,7 +17,7 @@ input, select {
 }
 
 legend {
-	font-size: 1.3em;
+	font-size: 1.8em;
 	margin: 0;
 	padding: 0 10px 0 10px;
 	width: auto;
@@ -25,9 +25,25 @@ legend {
 }
 
 .joins fieldset {
-	background-image: linear-gradient(to right, #FDFDFD 30%, #009688);
+	background-image: linear-gradient(to right, #009688 30%, #00695C);
+}
+
+.joins fieldset legend {
+	text-stroke: 1px #009688;
+	text-fill-color: #000;
+	-webkit-text-stroke: 1px #009688;
+	-webkit-text-fill-color: #000;
+	font-weight: 900;
 }
 
 .selects fieldset {
-	background-image: linear-gradient(to right, #FDFDFD 30%, #FF5722);
+	background-image: linear-gradient(to right, #F44336 30%, #C62828);
+}
+
+.selects fieldset legend {
+	text-stroke: 1px #F44336;
+	text-fill-color: #000;
+	-webkit-text-stroke: 1px #F44336;
+	-webkit-text-fill-color: #000;
+	font-weight: 900;
 }

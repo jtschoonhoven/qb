@@ -83,7 +83,15 @@
 	var QueryBuilder = Backbone.View.extend({
 		el: '#app-goes-here',
 		template: require('./templates/query-builder.jade'),
+		events: { 'submit': 'build' }
 	});
+
+
+	// Submit form and fetch SQL.
+	QueryBuilder.prototype.build = function(e) {
+		e.stopImmediatePropagation();
+		console.log('S')
+	};
 
 
 	QueryBuilder.prototype.listen = function() {
