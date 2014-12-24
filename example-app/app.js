@@ -128,16 +128,6 @@
 	});
 
 
-	// Submit form and fetch SQL from server.
-	QueryBuilder.prototype.build = function(e) {
-		e.preventDefault();
-
-		if (browserOnly) { return $('#messages').html(this.alert()); }
-
-		$.ajax({})
-	};
-
-
 	QueryBuilder.prototype.listen = function() {
 		var that = this;
 
@@ -166,8 +156,54 @@
 	};
 
 
+	// Submit form and fetch SQL from server.
+	QueryBuilder.prototype.build = function(e) {
+		e.preventDefault();
+		var that = this;
+
+		if (!this.result) { 
+			this.result = new Result(); 
+		}
+
+		if (browserOnly) { 
+			this.result.browserOnly = true; 
+			return this.result.render();
+		}
+
+		var data = {
+			joins: this.joinSet.collection.toJSON(),
+			selects: this.selectSet.collection.toJSON()
+		};
+
+		var req = $.ajax({ url: '/api/build', type: 'POST', data: data });
+
+		req.done(function(res) { 
+			that.result.res = res;
+			that.result.status = 'success';
+		});
+
+		req.fail(function(err, status) { 
+			that.result.err = err;
+			that.result.status = 'error';
+		});
+
+		this.result.render();
+	};
+
+
 	// Construct QueryBuilder view in global scope.
 	window.qb = new QueryBuilder();
+
+
+
+	// Result View
+	// ==================================================
+	// A simple panel for displaying QB results/errors.
+
+	var Result = Backbone.View.extend({
+		template: require('./templates/result.jade'),
+		el: '#result'
+	});
 
 
 
@@ -375,14 +411,13 @@
 	var cachedSchema = require('./cached-schema.json');
 
 	tables.on('sync', function() { qb.render(); });
-	tables.on('error', function() { serverUnavailable(); });
+	tables.on('error', function() { useCachedSchema(); });
 	tables.fetch();
 
-	function serverUnavailable() {
+	function useCachedSchema() {
 		tables.reset(cachedSchema);
 		browserOnly = true;
 		qb.render();
 	}
-
 
 })()

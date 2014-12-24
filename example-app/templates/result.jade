@@ -1,0 +1,8 @@
+div(class="panel panel-default")
+  div(class="panel-body")
+    if (browserOnly)
+      | Browser Only
+    if (status === 'error')
+      | Err
+    if (status === 'success')
+      | Ok
