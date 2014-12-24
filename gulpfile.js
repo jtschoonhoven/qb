@@ -1,10 +1,14 @@
-var gulp       = require('gulp')
-,   gutil      = require('gulp-util')
-,   jshint     = require('gulp-jshint')
-,   stylish    = require('jshint-stylish')
-,   nodemon    = require('gulp-nodemon')
-,   source     = require('vinyl-source-stream')
-,   browserify = require('browserify');
+
+var Qb          = require('./qb')
+,   fs          = require('fs')
+,   gulp        = require('gulp')
+,   gutil       = require('gulp-util')
+,   jshint      = require('gulp-jshint')
+,   stylish     = require('jshint-stylish')
+,   nodemon     = require('gulp-nodemon')
+,   source      = require('vinyl-source-stream')
+,   browserify  = require('browserify')
+,   definitions = require('./example-definitions');
 
 
 // Run test and lint.
@@ -26,6 +30,14 @@ gulp.task('lint', function() {
 // Start API.
 gulp.task('start', function() {
   nodemon({ script: 'example-api/app.js', ignore: ['node_modules/'] });
+});
+
+
+// Create cached schema for use without Node server.
+gulp.task('cache', function() {
+  var qb = new Qb(definitions);
+  var schema = JSON.stringify(qb.schema, null, 1);
+  fs.writeFileSync('./example-app/cached-schema.json', schema);
 });
 
 

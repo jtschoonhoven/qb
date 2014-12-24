@@ -368,7 +368,13 @@
 	// ==================================================
 	// Fetch schema then render root view.
 
+	tables.on('error', function() { warnServerUnavailable(); });
 	tables.on('sync', function() { qb.render(); });
 	tables.fetch();
+
+
+	function warnServerUnavailable() {
+
+	}
 
 })()

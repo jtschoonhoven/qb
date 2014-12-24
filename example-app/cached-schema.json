@@ -1,0 +1,115 @@
+[
+ {
+  "id": "users",
+  "name": "Users",
+  "columns": [
+   "User ID",
+   "Join date"
+  ],
+  "joins": [
+   {
+    "id": "petitions",
+    "name": "Petitions created"
+   },
+   {
+    "id": "signatures",
+    "name": "Signatures"
+   },
+   {
+    "id": "tags",
+    "name": "Tags signed"
+   }
+  ]
+ },
+ {
+  "id": "petitions",
+  "name": "Petitions",
+  "columns": [
+   "Petition ID",
+   "Creator",
+   "Date"
+  ],
+  "joins": [
+   {
+    "id": "users",
+    "name": "Creator"
+   },
+   {
+    "id": "signatures",
+    "name": "Signatures"
+   },
+   {
+    "id": "tags",
+    "name": "Tags"
+   }
+  ]
+ },
+ {
+  "id": "signatures",
+  "name": "Signatures",
+  "columns": [
+   "Signature ID",
+   "petition_id",
+   "user_id",
+   "Sign date"
+  ],
+  "joins": [
+   {
+    "id": "users",
+    "name": "Signer"
+   },
+   {
+    "id": "petitions",
+    "name": "Petition signed"
+   },
+   {
+    "id": "tags",
+    "name": "Signature tags"
+   },
+   {
+    "id": "taggings"
+   }
+  ]
+ },
+ {
+  "id": "tags",
+  "name": "Tags",
+  "columns": [
+   "id",
+   "name"
+  ],
+  "joins": [
+   {
+    "id": "users",
+    "name": "Users signed"
+   },
+   {
+    "id": "petitions",
+    "name": "Petitions tagged"
+   },
+   {
+    "id": "taggings"
+   }
+  ]
+ },
+ {
+  "id": "taggings",
+  "name": "Taggings",
+  "columns": [
+   "id",
+   "tag_id",
+   "taggable_id"
+  ],
+  "joins": [
+   {
+    "id": "petitions"
+   },
+   {
+    "id": "signatures"
+   },
+   {
+    "id": "tags"
+   }
+  ]
+ }
+]
