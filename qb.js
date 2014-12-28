@@ -25,7 +25,7 @@ function Qb(definitions) {
 
 
 // Define models and relationships.
-// This is done just once to configure the Qb instance.
+// This is done only once to configure the Qb instance.
 
 Qb.prototype.define = function(definitions) {
 	var that = this;
@@ -162,9 +162,11 @@ function join(query, spec) {
 		var sourceModel = that.models[sourceTable];
 		var sourceDef   = that.definitions[sourceTable];
 
+		var via = sourceDef.joins[joinTable].via;
+
 		// Get keys for join. Default to primary key if source/target keys are not set.
 		var sourceKey = sourceDef.joins[joinTable].source_key || sourceDef.primary_key;
-		var joinKey   = sourceDef.joins[joinTable].target_key || targetDef.primary_key;
+		var joinKey   = sourceDef.joins[joinTable].target_key || joinDef.primary_key;
 
 		joins = joins.join(joinModel).on(sourceModel[sourceKey].equals(joinModel[joinKey]));
 	});

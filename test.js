@@ -24,9 +24,16 @@ var spec2 = {
   ]
 }
 
+var spec3 = {
+  from: 'petitions',
+  joins: [{ table: 'tags' }],
+  select: [{ field: 'id' }]
+};
 
-qb.query(spec1);
-qb.query(spec2);
+
+// qb.query(spec1);
+// qb.query(spec2);
+qb.query(spec3);
 
 
 describe('Testing', function() {
