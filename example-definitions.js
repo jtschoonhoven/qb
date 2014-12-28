@@ -4,7 +4,7 @@ var definitions = {
 		name: "users",
 		as: "Users",
 		columns: [
-			{ name: "id", as: "User ID" },
+			{ name: "id" },
 			{ name: "created_at", as: "Join date" }
 		],
 		joins: {

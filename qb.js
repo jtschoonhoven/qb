@@ -103,35 +103,6 @@ function querySetup(spec, joined, alias) {
 
 	// Fill in any other missing params.
 	_.defaults(spec, { wheres: [], groups: [], limit: false });
-
-	// // Avoid joining a table twice with the same name by 
-	// // appending an _{index} to table alias.
-
-	// var name = alias || spec.table;
-	// if (joined[name]) { alias = name + '_' + joined[name]++; }
-	// else { joined[name] = 2; }
-
-	// // Create a table model from spec. Apply alias if defined.
-	// spec.model = this.models[spec.table].as(alias);
-
-	// // Call function recursively for each nested join.
-	// spec.joins.forEach(function(joinSpec, index) {
-	// 	alias   = that.definitions[spec.table].joins[joinSpec.table].as;
-	// 	var via = that.definitions[spec.table].joins[joinSpec.table].via;
-
-	// 	// If "via" defines an intermediate table, alter the spec to
-	// 	// join through that table.
-
-	// 	if (via) { 
-	// 		spec.joins[index] = { 
-	// 			table: via, 
-	// 			joins: [{ table: joinSpec.table, fields: joinSpec.fields }] 
-	// 		};
-	// 	}
-
-	// 	// Call function recursively for each join.
-	// 	querySetup.call(that, spec.joins[index], joined, alias);
-	// });
 }
 
 
@@ -159,16 +130,23 @@ function join(query, spec) {
 // A single join operation. Called for each join in spec.joins.
 function joinOnce(spec, join, joins, names) {
 
-	// Get name of table being joined ON else default to FROM table.
+	// The "source" table is the table being joined ON. To build the join
+	// we first need the following attributes.
+	// sourceJoin:  Get source table from spec.joins if exists.
+	// sourceTable: Get name of source table. Defaults to FROM table.
+	// sourceDef:   Get definitions for source table for convenience.
+	// sourceAlias: Use specified alias if exists, else take from sourceDef.
+	// sourceModel: Lookup the SQL model for the source table.
+
 	var sourceJoin  = _.findWhere(spec.joins, { id: join.joinId });
 	var sourceTable = sourceJoin ? sourceJoin.table : spec.from; 
 	var sourceDef   = this.definitions[sourceTable];
-
-	// Use custom alias if defined in spec.joins, else check the source def.
 	var sourceAlias = sourceJoin ? sourceJoin.alias : sourceDef.as;
 	var sourceModel = this.models[sourceTable].as(sourceAlias);
 
-	// Get intermediate table, if exists.
+	// To make things easier, users are allowed to define intermediate
+	// tables that can be joined through implicitly.
+
 	var intermediate = sourceDef.joins[join.table].via;
 
 	// If joining via intermediate table, join it before proceeding.
@@ -187,26 +165,37 @@ function joinOnce(spec, join, joins, names) {
 		return joins;
 	}
 
-	// Get name, alias, model and definition of table being joined.
+	// The "join" table is the table being JOINed. Similar to the
+	// source attributes above, we need the table name and defs.
+
 	var joinTable = join.table;
 	var joinDef   = this.definitions[joinTable];
 
-	// Need to know what each table is called so we can
-	// avoid using the same alias twice.
+	// But before naming the new model, we need to grab its alias
+	// and check whether it already exists in "names", the array
+	// of aliases that have already been used.
 
 	var joinAlias = joinDef.as || joinTable;
 	var named     = _.findWhere(names, { alias: joinAlias });
 
-	if (named) { joinAlias = named.alias + '_' + (++named.used); }
-	else { names.push({ alias: joinAlias, used: 1 }); }
+	// If joinAlias has already been used, make a new alias by
+	// appending an index to the old alias e.g. users_2.
+	// Otherwise add joinAlias to names array.
 
+	if (named) { 
+		joinAlias = named.alias + '_' + (++named.used); 
+	} else { 
+		names.push({ alias: joinAlias, used: 1 }); 
+	}
+
+	// Now we can define and name the join model.
 	var joinModel = this.models[joinTable].as(joinAlias);
 
 	// Get keys for join. Default to primary key if source/target keys are not set.
 	var sourceKey = sourceDef.joins[joinTable].source_key || sourceDef.primary_key;
 	var joinKey   = sourceDef.joins[joinTable].target_key || joinDef.primary_key;
 
-	// Get the alias ("AS") used for join/source key if exists, or use key.
+	// Get the alias ("AS") used for join/source key if exists, or just use the key as is.
 	var sourceKeyAs = _.findWhere(sourceDef.columns, { name: sourceKey }).property || sourceKey;
 	var joinKeyAs   = _.findWhere(joinDef.columns, { name: joinKey }).property || joinKey;
 
