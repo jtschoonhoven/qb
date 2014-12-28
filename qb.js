@@ -139,17 +139,19 @@ function querySetup(spec, joined, alias) {
 function join(query, spec) {
 	var that = this;
 
-	// "Joins" is a SQL model on which will be appended
-	// each join from spec.joins.
-
-	var alias = this.definitions[spec.from].as
+	var alias = this.definitions[spec.from].as;
 	var joins = this.models[spec.from].as(alias);
+	var names = [{ alias: alias, used: 1 }];
+
+	// For each join in spec.joins, append a JOIN clause to
+	// the "joins" model. Keep track of each alias and number
+	// of times used in "names" array (avoids reusing alias).
 
 	spec.joins.forEach(function(join) {
-		joins = joinOnce.call(that, spec, join, joins);
+		joins = joinOnce.call(that, spec, join, joins, names);
 	});
 
-	// Apply joins to query.
+	// Apply joins model to query.
 	query.from(joins);
 }
 
@@ -157,18 +159,13 @@ function join(query, spec) {
 // A single join operation. Called for each join in spec.joins.
 function joinOnce(spec, join, joins, names) {
 
-	// Get the name of the source table (that being joined ON).
-	// If no joinId is given, default to FROM table.
-
-	if (join.joinId) { 
-		var sourceTable = _.findWhere(spec.joins, { id: join.joinId }).table; 
-	} else { 
-		var sourceTable = spec.from; 
-	}
-
-	// Get alias, model and defintion of table being joined ON.
+	// Get name of table being joined ON else default to FROM table.
+	var sourceJoin  = _.findWhere(spec.joins, { id: join.joinId });
+	var sourceTable = sourceJoin ? sourceJoin.table : spec.from; 
 	var sourceDef   = this.definitions[sourceTable];
-	var sourceAlias = sourceDef.as;
+
+	// Use custom alias if defined in spec.joins, else check the source def.
+	var sourceAlias = sourceJoin ? sourceJoin.alias : sourceDef.as;
 	var sourceModel = this.models[sourceTable].as(sourceAlias);
 
 	// Get intermediate table, if exists.
@@ -185,21 +182,25 @@ function joinOnce(spec, join, joins, names) {
 		spec.joins.push(joinVia);
 		join.joinId = viaId;
 
-		joins = joinOnce.call(this, spec, joinVia, joins);
-		joins = joinOnce.call(this, spec, join, joins);
+		joins = joinOnce.call(this, spec, joinVia, joins, names);
+		joins = joinOnce.call(this, spec, join, joins, names);
 		return joins;
 	}
 
 	// Get name, alias, model and definition of table being joined.
 	var joinTable = join.table;
 	var joinDef   = this.definitions[joinTable];
-	var joinAlias = joinDef.as;
-	var joinModel = this.models[joinTable].as(joinAlias);
 
 	// Need to know what each table is called so we can
 	// avoid using the same alias twice.
 
-	var name = joinAlias || joinTable;
+	var joinAlias = joinDef.as || joinTable;
+	var named     = _.findWhere(names, { alias: joinAlias });
+
+	if (named) { joinAlias = named.alias + '_' + (++named.used); }
+	else { names.push({ alias: joinAlias, used: 1 }); }
+
+	var joinModel = this.models[joinTable].as(joinAlias);
 
 	// Get keys for join. Default to primary key if source/target keys are not set.
 	var sourceKey = sourceDef.joins[joinTable].source_key || sourceDef.primary_key;
