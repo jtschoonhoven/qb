@@ -24,7 +24,8 @@
   },
   "homepage": "https://github.com/jtschoonhoven/qb",
   "dependencies": {
-    "sql": "0.*"
+    "sql": "0.*",
+    "underscore": "^1.7.0"
   },
   "devDependencies": {
     "body-parser": "~1.8.1",

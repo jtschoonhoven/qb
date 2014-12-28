@@ -1,0 +1,27 @@
+
+div(class="form-group")
+  - var labelText = isRoot ? 'Include:' : 'and:'
+  label(class="col-sm-1 col-xs-12 control-label") #{labelText}
+
+  div(class="col-sm-3 col-xs-6")
+    select(name="model" class="form-control")
+      option(disabled selected) something
+        if isRoot
+          each table in tables.toJSON()
+            - var isSelected = model && table.id === model.get('table')
+            option(value=table.id selected=isSelected) #{table.name}
+        else
+          - var joinables = tables.get(parent.model.get('table')).get('tables')
+          each joinable in joinables
+            - var isSelected = model && joinable.id === model.get('table')
+            option(value=joinable.id data-table-id=parent.model.id selected=isSelected) #{joinable.name}
+
+  div(class="btn-group col-sm-8 col-xs-6")
+    if (model)
+      a.add-btn(href="#" class="btn btn-default")
+        span(class="glyphicon glyphicon-plus")
+    if (!isRoot || qb.tableSet.collection.length > 1)
+      a.remove-btn(href="#" class="btn btn-default")
+        span(class="glyphicon glyphicon-minus")
+
+.content

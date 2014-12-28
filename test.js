@@ -9,41 +9,24 @@ var mocha       = require('mocha')
 var qb = new Qb(definitions);
 
 var spec1 = {
-  table: 'users',
-  fields: ['id', 'Join date'],
-  filters: [
-    [{ table: 'users', field: 'id', operator: 'equals', value: 100 }, { table: 'users', field: 'id', operator: 'equals', value: 200 }],
-    [{ table: 'users', field: 'Join date', operator: 'equals', value: 200 }]
-  ]
+  from: 'users',
+  joins: [{ table: 'signatures', id: 1 }],
+  selects: [{ field: 'id' }, { field: 'created_at', joinId: 1 }]
 };
 
 var spec2 = {
-  table: 'users',
-  fields: ['id', 'Join date'],
-  joins: [
-    { 
-      table: 'signatures', 
-      fields: ['Sign date'],
-      joins: [{ table: 'petitions', fields: ['id'] }]
-    }
+  from: 'users',
+  joins: [{ table: 'petitions', id: 1 }, { table: 'signatures', joinId: 1 }],
+  selects: [{ field: 'id' }],
+  wheres: [
+    [{ table: 'users', field: 'id', operator: 'equals', value: 100 }, { table: 'users', field: 'id', operator: 'equals', value: 200 }],
+    [{ table: 'users', field: 'Join date', operator: 'equals', value: 200 }]
   ]
-};
+}
 
-var spec3 = {
-  table: 'signatures',
-  fields: ['id', 'Sign date'],
-  joins: [
-    {
-      table: 'tags',
-      fields: ['name'],
-      joins: [{ table: 'petitions'}]
-    }
-  ]
-};
 
-// qb.query(spec1);
+qb.query(spec1);
 qb.query(spec2);
-qb.query(spec3);
 
 
 describe('Testing', function() {
