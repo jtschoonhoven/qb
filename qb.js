@@ -79,13 +79,13 @@ Qb.prototype.query = function(spec) {
 
 
 
-// Default values and validation.
+// Default values and basic validation.
 function querySetup(spec, joined, alias) {
 	var that = this;
 
 	if (!spec) { throw '"Query" called without parameters.'; }
 
-	// Allow user to use some alternate keys.
+	// Allow user to use some alternate keywords in spec.
 	spec.from    = spec.from    || spec.table;
 	spec.selects = spec.selects || spec.select || spec.fields;
 	spec.joins   = spec.joins   || spec.join   || spec.include;
@@ -96,12 +96,12 @@ function querySetup(spec, joined, alias) {
 	if (!spec.from)    { throw '"From" string not set.'; }
 	if (!spec.selects) { throw '"Select" array not set.'; }
 
-	// Ensure specified table has been defined.
+	// Ensure spec.from is a defined model.
 	if (!this.models[spec.from]) { 
 		throw '"' + spec.from + '" is not a defined model.'; 
 	}
 
-	// Fill in any missing params.
+	// Fill in any other missing params.
 	_.defaults(spec, { wheres: [], groups: [], limit: false });
 
 	// // Avoid joining a table twice with the same name by 
@@ -139,7 +139,8 @@ function querySetup(spec, joined, alias) {
 function join(query, spec) {
 	var that = this;
 
-	// Each join in array will be joined to this model.
+	// "Joins" is a SQL model on which will be appended
+	// each join from spec.joins.
 	var alias = this.definitions[spec.from].as
 	var joins = this.models[spec.from].as(alias);
 
@@ -152,7 +153,7 @@ function join(query, spec) {
 }
 
 
-
+// A single join operation. Called for each in spec.joins.
 function doJoin(spec, join, joins) {
 
 	// Get the name of the source table (that being joined ON).
@@ -164,18 +165,21 @@ function doJoin(spec, join, joins) {
 		var sourceTable = spec.from; 
 	}
 
-	// Get model and defintion of table being joined ON.
-	var sourceAlias = this.definitions[sourceTable].as;
-	var sourceModel = this.models[sourceTable].as(sourceAlias);
+	// Get alias, model and defintion of table being joined ON.
 	var sourceDef   = this.definitions[sourceTable];
+	var sourceAlias = sourceDef.as;
+	var sourceModel = this.models[sourceTable].as(sourceAlias);
 
 	// Get intermediate table, if exists.
-	var via = sourceDef.joins[join.table].via;
+	var intermediate = sourceDef.joins[join.table].via;
 
 	// If joining via intermediate table, join it before proceeding.
-	if (via) {
-		var viaId   = _.uniqueId('via_');
-		var joinVia = { table: via, id: viaId, joinId: join.id };
+	// This just pushes a new join to spec.joins as if the user
+	// had told us explicitly to join through that table.
+
+	if (intermediate) {
+		var viaId   = _.uniqueId('_via_');
+		var joinVia = { table: intermediate, id: viaId, joinId: join.id };
 
 		spec.joins.push(joinVia);
 		join.joinId = viaId;
@@ -185,11 +189,11 @@ function doJoin(spec, join, joins) {
 		return joins;
 	}
 
-	// Get name, model and definition of table being joined.
+	// Get name, alias, model and definition of table being joined.
 	var joinTable = join.table;
-	var joinAlias = this.definitions[joinTable].as;
-	var joinModel = this.models[joinTable].as(joinAlias);
 	var joinDef   = this.definitions[joinTable];
+	var joinAlias = joinDef.as;
+	var joinModel = this.models[joinTable].as(joinAlias);
 
 	// Get keys for join. Default to primary key if source/target keys are not set.
 	var sourceKey = sourceDef.joins[joinTable].source_key || sourceDef.primary_key;
