@@ -143,36 +143,56 @@ function join(query, spec) {
 	var joins = this.models[spec.from];
 
 	spec.joins.forEach(function(join) {
-
-		// Get name, model and definition of table being joined.
-		var joinTable = join.table;
-		var joinModel = that.models[joinTable];
-		var joinDef   = that.definitions[joinTable];
-
-		// Get the name of the source table (that being joined ON).
-		// If no joinId is given, default to FROM table.
-
-		if (join.joinId) { 
-			var sourceTable = _.findWhere(spec.joins, { id: join.joinId }).table; 
-		} else { 
-			var sourceTable = spec.from; 
-		}
-
-		// Get model and defintion of table being joined ON.
-		var sourceModel = that.models[sourceTable];
-		var sourceDef   = that.definitions[sourceTable];
-
-		var via = sourceDef.joins[joinTable].via;
-
-		// Get keys for join. Default to primary key if source/target keys are not set.
-		var sourceKey = sourceDef.joins[joinTable].source_key || sourceDef.primary_key;
-		var joinKey   = sourceDef.joins[joinTable].target_key || joinDef.primary_key;
-
-		joins = joins.join(joinModel).on(sourceModel[sourceKey].equals(joinModel[joinKey]));
+		joins = doJoin.call(that, spec, join, joins);
 	});
 
 	// Apply joins to query.
 	query.from(joins);
+}
+
+
+
+function doJoin(spec, join, joins) {
+
+	// Get the name of the source table (that being joined ON).
+	// If no joinId is given, default to FROM table.
+
+	if (join.joinId) { 
+		var sourceTable = _.findWhere(spec.joins, { id: join.joinId }).table; 
+	} else { 
+		var sourceTable = spec.from; 
+	}
+
+	// Get model and defintion of table being joined ON.
+	var sourceModel = this.models[sourceTable];
+	var sourceDef   = this.definitions[sourceTable];
+
+	// Get intermediate table, if exists.
+	var via = sourceDef.joins[join.table].via;
+
+	// If joining via intermediate table, join it before proceeding.
+	if (via) {
+		var viaId   = _.uniqueId('via_');
+		var joinVia = { table: via, id: viaId, joinId: join.id };
+
+		spec.joins.push(joinVia);
+		join.joinId = viaId;
+
+		joins = doJoin.call(this, spec, joinVia, joins);
+		joins = doJoin.call(this, spec, join, joins);
+		return joins;
+	}
+
+	// Get name, model and definition of table being joined.
+	var joinTable = join.table;
+	var joinModel = this.models[joinTable];
+	var joinDef   = this.definitions[joinTable];
+
+	// Get keys for join. Default to primary key if source/target keys are not set.
+	var sourceKey = sourceDef.joins[joinTable].source_key || sourceDef.primary_key;
+	var joinKey   = sourceDef.joins[joinTable].target_key || joinDef.primary_key;
+
+	return joins.join(joinModel).on(sourceModel[sourceKey].equals(joinModel[joinKey]));
 }
 
 

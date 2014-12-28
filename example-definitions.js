@@ -25,7 +25,8 @@ var definitions = {
 		joins: {
 			users: { source_key: "user_id", type: "oneToOne", as: "Creator" },
 			signatures: { target_key: "petition_id", type: "oneToMany", as: "Signatures" },
-			tags: { via: "taggings", as: "Tags" }
+			tags: { via: "taggings", as: "Tags" },
+			taggings: { target_key: 'taggable_id', hidden: true }
 		}
 	},
 
@@ -61,6 +62,7 @@ var definitions = {
 		name: "taggings",
 		as: "Taggings",
 		columns: [ "id", "tag_id", "taggable_id" ],
+		hidden: true,
 		joins: {
 			petitions: { source_key: "taggable_id", type: "manyToOne" },
 			signatures: { source_key: "taggable_id", type: "manyToOne" },
