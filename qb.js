@@ -140,7 +140,8 @@ function join(query, spec) {
 	var that = this;
 
 	// Each join in array will be joined to this model.
-	var joins = this.models[spec.from];
+	var alias = this.definitions[spec.from].as
+	var joins = this.models[spec.from].as(alias);
 
 	spec.joins.forEach(function(join) {
 		joins = doJoin.call(that, spec, join, joins);
@@ -164,7 +165,8 @@ function doJoin(spec, join, joins) {
 	}
 
 	// Get model and defintion of table being joined ON.
-	var sourceModel = this.models[sourceTable];
+	var sourceAlias = this.definitions[sourceTable].as;
+	var sourceModel = this.models[sourceTable].as(sourceAlias);
 	var sourceDef   = this.definitions[sourceTable];
 
 	// Get intermediate table, if exists.
@@ -185,7 +187,8 @@ function doJoin(spec, join, joins) {
 
 	// Get name, model and definition of table being joined.
 	var joinTable = join.table;
-	var joinModel = this.models[joinTable];
+	var joinAlias = this.definitions[joinTable].as;
+	var joinModel = this.models[joinTable].as(joinAlias);
 	var joinDef   = this.definitions[joinTable];
 
 	// Get keys for join. Default to primary key if source/target keys are not set.
