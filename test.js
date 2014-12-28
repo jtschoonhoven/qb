@@ -24,16 +24,24 @@ var spec2 = {
   ]
 }
 
+// Join via intermediate table.
 var spec3 = {
   from: 'petitions',
   joins: [{ table: 'tags' }],
   select: [{ field: 'id' }]
 };
 
+// Join same table twice.
+var spec4 = {
+  from: 'users',
+  joins: [{ table: 'petitions', id: 1 }, { table: 'users', joinId: 1 }],
+  select: [{ field: 'id' }]
+};
 
 qb.query(spec1);
 qb.query(spec2);
 qb.query(spec3);
+qb.query(spec4);
 
 
 describe('Testing', function() {

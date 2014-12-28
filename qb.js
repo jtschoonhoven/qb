@@ -141,11 +141,12 @@ function join(query, spec) {
 
 	// "Joins" is a SQL model on which will be appended
 	// each join from spec.joins.
+
 	var alias = this.definitions[spec.from].as
 	var joins = this.models[spec.from].as(alias);
 
 	spec.joins.forEach(function(join) {
-		joins = doJoin.call(that, spec, join, joins);
+		joins = joinOnce.call(that, spec, join, joins);
 	});
 
 	// Apply joins to query.
@@ -153,8 +154,8 @@ function join(query, spec) {
 }
 
 
-// A single join operation. Called for each in spec.joins.
-function doJoin(spec, join, joins) {
+// A single join operation. Called for each join in spec.joins.
+function joinOnce(spec, join, joins, names) {
 
 	// Get the name of the source table (that being joined ON).
 	// If no joinId is given, default to FROM table.
@@ -184,8 +185,8 @@ function doJoin(spec, join, joins) {
 		spec.joins.push(joinVia);
 		join.joinId = viaId;
 
-		joins = doJoin.call(this, spec, joinVia, joins);
-		joins = doJoin.call(this, spec, join, joins);
+		joins = joinOnce.call(this, spec, joinVia, joins);
+		joins = joinOnce.call(this, spec, join, joins);
 		return joins;
 	}
 
@@ -195,11 +196,21 @@ function doJoin(spec, join, joins) {
 	var joinAlias = joinDef.as;
 	var joinModel = this.models[joinTable].as(joinAlias);
 
+	// Need to know what each table is called so we can
+	// avoid using the same alias twice.
+
+	var name = joinAlias || joinTable;
+
 	// Get keys for join. Default to primary key if source/target keys are not set.
 	var sourceKey = sourceDef.joins[joinTable].source_key || sourceDef.primary_key;
 	var joinKey   = sourceDef.joins[joinTable].target_key || joinDef.primary_key;
 
-	return joins.join(joinModel).on(sourceModel[sourceKey].equals(joinModel[joinKey]));
+	// Get the alias ("AS") used for join/source key if exists, or use key.
+	var sourceKeyAs = _.findWhere(sourceDef.columns, { name: sourceKey }).property || sourceKey;
+	var joinKeyAs   = _.findWhere(joinDef.columns, { name: joinKey }).property || joinKey;
+
+	// Add new join to joins and return.
+	return joins.join(joinModel).on(sourceModel[sourceKeyAs].equals(joinModel[joinKeyAs]));
 }
 
 
@@ -258,9 +269,7 @@ function normalize(model) {
 	});
 
 	// If primary key isn't set, use "id" alias or simplye "id".
-	if (!model.primary_key) {
-		model.primary_key = _.findWhere(model.columns, {name: 'id'}).property || 'id';
-	}
+	if (!model.primary_key) { model.primary_key = 'id'; }
 	model.as = model.as || model.name;
 
 	return model;
