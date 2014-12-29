@@ -68,7 +68,7 @@ function normalize(model) {
 		return { name: col.name, property: col.as || col.name };
 	});
 
-	// If primary key isn't set, use "id" alias or simplye "id".
+	// If primary key isn't set, assume "id".
 	if (!model.primary_key) { model.primary_key = 'id'; }
 	model.as = model.as || model.name;
 
@@ -88,6 +88,7 @@ Qb.prototype.query = function(spec) {
 	join.call(this, query, spec);
 	select.call(this, query, spec);
 	// where.call(this, query, spec);
+	// group.call(this, query, spec);
 
 	var result    = query.toQuery().text;
 	var formatted = formatSQL(result);
@@ -104,7 +105,7 @@ Qb.prototype.query = function(spec) {
 function querySetup(spec, joined, alias) {
 	var that = this;
 
-	if (!spec) { throw '"Query" called without parameters.'; }
+	if (!spec) { throw Error('"Query" called without parameters.'); }
 
 	// Allow user to use some alternate keywords in query spec.
 	var selects = spec.selects = spec.selects || spec.select || spec.fields   || [];
@@ -116,14 +117,14 @@ function querySetup(spec, joined, alias) {
 	if (spec.from) { spec.joins.unshift({ table: spec.from }); }
 
 	// Filter out any nonwhitelisted keys.
-	selects.forEach(function(el, i) { selects[i] = _.pick(el, 'field', 'joinId'); });
-	joins.forEach(function(el, i) { joins[i]     = _.pick(el, 'id', 'table', 'joinId'); });
-	wheres.forEach(function(el, i) { wheres[i]   = _.pick(el); });
-	groups.forEach(function(el, i) { groups[i]   = _.pick(el); });
+	selects.forEach(function(el,i) { selects[i] = _.pick(el, 'field', 'joinId'); });
+	joins.forEach(function(el,i)   { joins[i]   = _.pick(el, 'id', 'table', 'joinId'); });
+	wheres.forEach(function(el,i)  { wheres[i]  = _.pick(el); });
+	groups.forEach(function(el,i)  { groups[i]  = _.pick(el); });
 
 	// Query requires a "from" and "select" at minimum.
 	if (!spec.joins.length > 0)   { throw Error('No tables listed in FROM clause.'); }
-	// if (!spec.selects.length > 0) { throw 'No fields listed in SELECT clause.'; }
+	if (!spec.selects.length > 0) { throw Error('No fields listed in SELECT clause.'); }
 }
 
 
@@ -131,6 +132,10 @@ function querySetup(spec, joined, alias) {
 // Join each table in spec.joins array.
 function join(query, spec) {
 	var that = this;
+
+	// For each join in spec.joins, append a JOIN clause to
+	// the "joins" model. Keep track of each alias and number
+	// of times used in "names" array (avoids reusing alias).
 
 	var from  = spec.joins[0].table;
 	var alias = this.definitions[from].as;
@@ -140,9 +145,6 @@ function join(query, spec) {
 	// Save model of FROM table to spec.joins.
 	spec.joins[0].model = joins;
 
-	// For each join in spec.joins, append a JOIN clause to
-	// the "joins" model. Keep track of each alias and number
-	// of times used in "names" array (avoids reusing alias).
 	// Note that i=1, rather than i=0, correctly skips the
 	// first element in spec.joins (which was joined above).
 
@@ -161,37 +163,35 @@ function joinOnce(spec, join, joins, names) {
 
 	// The "source" table is the table being joined ON. If not specified, this 
 	// always defaults to the first join in spec.joins (the FROM table). 
-	// To build a join clause we first need the following attributes:
 
-	// sourceJoin:  The source from spec.joins (else default to FROM).
-	// sourceTable: The name of the source table (else default to FROM).
-	// sourceDef:   Definitions for source table for convenience.
-	// sourceAlias: Use specified alias if exists, else take from sourceDef.
-	// sourceModel: Lookup the SQL model for the source table.
+	var sourceJoin = _.findWhere(spec.joins, { id: join.joinId }) || spec.joins[0];
+	var sourceDef  = this.definitions[sourceJoin.table];
 
-	var sourceJoin  = _.findWhere(spec.joins, { id: join.joinId }) || spec.joins[0];
-	var sourceTable = sourceJoin.table;
-	var sourceDef   = this.definitions[sourceTable];
-	var sourceModel = sourceJoin.model;
-
-	// To make things easier, users are allowed to define intermediate
-	// tables that can be joined through implicitly.
+	// Intermediate tables are joined through implicitly according
+	// to the "via" attribute in definitions. Intermediates sit
+	// in between a join table and its defined source.
 
 	var intermediate = sourceDef.joins[join.table].via;
 
-	// If joining via intermediate table, join it before proceeding.
-	// This just pushes a new join to spec.joins as if the user
-	// had told us explicitly to join through that table.
-
 	if (intermediate) {
-		var viaId    = _.uniqueId('_via_');
+		var viaId = _.uniqueId('_via_');
+
+		// Define a join between the intermediate table and the current source
+		// in the same format as an element of spec.joins. Add the join to a
+		// stubbed "spec" object that we'll use in a moment.
+
 		var joinVia  = { table: intermediate, id: viaId, joinId: join.id };
 		var joinSpec = { joins: [joinVia] };
 
+		// Update current join so it joins via the intermediate table.
 		join.joinId = viaId;
+
+		// Join the intermediate to the current source, then join the
+		// current join to the intermediate using the stubbed joinSpec.
 
 		joins = joinOnce.call(this, spec, joinVia, joins, names);
 		joins = joinOnce.call(this, joinSpec, join, joins, names);
+
 		return joins;
 	}
 
@@ -213,37 +213,51 @@ function joinOnce(spec, join, joins, names) {
 	// Otherwise add joinAlias to names array.
 
 	if (named) { 
-		joinAlias = named.alias + '_' + (++named.used); 
-	} else { 
-		names.push({ alias: joinAlias, used: 1 }); 
+		joinAlias = named.alias + '_' + (++named.used);
+	} else {
+		names.push({ alias: joinAlias, used: 1 });
 	}
 
-	// Now we can define and name the join model.
-	var joinModel = this.models[joinTable].as(joinAlias);
-	join.model = joinModel;
+	join.model = this.models[joinTable].as(joinAlias);
 
 	// Get keys for join. Default to primary key if source/target keys are not set.
 	var sourceKey = sourceDef.joins[joinTable].source_key || sourceDef.primary_key;
 	var joinKey   = sourceDef.joins[joinTable].target_key || joinDef.primary_key;
 
 	// Get the alias ("AS") used for join/source key if exists, or just use the key as is.
-	var sourceKeyAs = _.findWhere(sourceDef.columns, { name: sourceKey }).property || sourceKey;
-	var joinKeyAs   = _.findWhere(joinDef.columns, { name: joinKey }).property || joinKey;
+	sourceKey = _.findWhere(sourceDef.columns, { name: sourceKey }).property || sourceKey;
+	joinKey   = _.findWhere(joinDef.columns, { name: joinKey }).property || joinKey;
 
-	// Add new join to joins and return.
-	return joins.join(joinModel).on(sourceModel[sourceKeyAs].equals(joinModel[joinKeyAs]));
+	// Add a JOIN clause and return joins.
+	return joins.join(join.model).on(sourceJoin.model[sourceKey].equals(join.model[joinKey]));
 }
 
 
-
+// Add a SELECT clause for each field in spec.selects.
 function select(query, spec) {
 	var that = this;
-
 	spec.selects.forEach(function(select) {
-		var join  = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
-		var definition = that.definitions[join.table];
-		var alias = _.findWhere(definition.columns, { name: select.field }).property || select.field;
-		query.select(join.model[alias]);
+
+		// Lookup the model to be selected from in spec.joins.
+		// If no joinId, assume spec.joins[0] (the FROM table).
+
+		var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
+		var selection = join.model[select.field];
+
+		// If select.field doesn't exist in join.model, the user
+		// is probably (incorrectly) referring to a field by its
+		// actual name rather than its alias. Let's handle that.
+		// NOTE: could be source of errors downroad. Revisit.
+
+		if (!selection) {
+			var columns = that.definitions[join.table].columns;
+			var column  = _.findWhere(columns, { name: select.field });
+			selection   = join.model[column.property];
+		}
+
+		if (!selection) { throw Error('Column "' + select.field + '" not defined in "' + join.table + '".'); }
+
+		query.select(selection);
 	});
 }
 
