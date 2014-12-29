@@ -26,7 +26,7 @@ var definitions = {
 			users: { source_key: "user_id", type: "oneToOne", as: "Creator" },
 			signatures: { target_key: "petition_id", type: "oneToMany", as: "Signatures" },
 			tags: { via: "taggings", as: "Tags" },
-			taggings: { target_key: 'taggable_id', hidden: true }
+			taggings: { target_key: 'taggable_id' }
 		}
 	},
 
@@ -43,7 +43,7 @@ var definitions = {
 			users: { source_key: "user_id", type: "manyToOne", as: "Signer" },
 			petitions: { source_key: "petition_id", type: "manyToOne", as: "Petition signed" },
 			tags: { source_key: "petition_id", via: "taggings", as: "Signature tags" },
-			taggings: { source_key: "petition_id", target_key: "taggable_id", type: "manyToOne", hidden: true }
+			taggings: { source_key: "petition_id", target_key: "taggable_id", type: "manyToOne" }
 		}
 	},
 
@@ -52,7 +52,7 @@ var definitions = {
 		as: "Tags",
 		columns: [ "id", "name" ],
 		joins: {
-			taggings: { target_key: 'tag_id', hidden: true },
+			taggings: { target_key: 'tag_id' },
 			users: { via: "taggings", as: "Users signed" },
 			petitions: { via: "taggings", as: "Petitions tagged" },
 			taggings: { target_key: "tag_id", type: "oneToOne" }
