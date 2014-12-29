@@ -10,7 +10,7 @@ div(class="form-group")
         if isRoot
           each table in tables.toJSON()
             - var isSelected = model && table.id === model.get('table')
-            - var joinId = !parent.model || parent.model.id
+            - var joinId = parent.model ? parent.model.id : false
             option(value=table.id data-join-id=joinId selected=isSelected) #{table.name}
 
         else

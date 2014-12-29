@@ -59,6 +59,24 @@ Qb.prototype.define = function(definitions) {
 
 
 
+// Parse definition for use with sql.define().
+function normalize(model) {
+	model.columns = model.columns.map(function(col) {
+		if (typeof col === 'string') {
+			return { name: col, property: col };
+		}
+		return { name: col.name, property: col.as || col.name };
+	});
+
+	// If primary key isn't set, use "id" alias or simplye "id".
+	if (!model.primary_key) { model.primary_key = 'id'; }
+	model.as = model.as || model.name;
+
+	return model;
+}
+
+
+
 // Assemble query to spec. Returns a string of SQL.
 Qb.prototype.query = function(spec) {
 	var that = this;
@@ -71,11 +89,13 @@ Qb.prototype.query = function(spec) {
 	// select.call(this, query, spec);
 	// where.call(this, query, spec);
 
-	console.log('\n');
-	console.log(query.toQuery().text);
+	var result    = query.toQuery().text;
+	var formatted = formatSQL(result);
 
-	this.lastQuery = query.toQuery();
-	return query.toQuery().text;
+	console.log('\n');
+	console.log(formatted);
+
+	return formatted;
 };
 
 
@@ -87,19 +107,19 @@ function querySetup(spec, joined, alias) {
 	if (!spec) { throw '"Query" called without parameters.'; }
 
 	// Allow user to use some alternate keywords in query spec.
-	var selects = spec.selects || spec.select || spec.fields   || [];
-	var joins   = spec.joins   || spec.join   || spec.include  || [];
-	var wheres  = spec.wheres  || spec.where  || spec.filters  || [];
-	var groups  = spec.groups  || spec.group  || spec.groupBy  || [];
-
-	// Filter out any nonwhitelisted keys.
-	selects.forEach(function(el, i) { selects[i] = _.pick(el, 'field', 'joinId'); });
-	joins.forEach(function(el, i)   { joins[i]   = _.pick(el, 'id', 'table', 'joinId'); });
-	wheres.forEach(function(el, i)  { wheres[i]  = _.pick(el); });
-	groups.forEach(function(el, i)  { groups[i]  = _.pick(el); });
+	var selects = spec.selects = spec.selects || spec.select || spec.fields   || [];
+	var joins   = spec.joins   = spec.joins   || spec.join   || spec.include  || [];
+	var wheres  = spec.wheres  = spec.wheres  || spec.where  || spec.filters  || [];
+	var groups  = spec.groups  = spec.groups  || spec.group  || spec.groupBy  || [];
 
 	// Prepend spec.from to the joins array if exists.
 	if (spec.from) { spec.joins.unshift({ table: spec.from }); }
+
+	// Filter out any nonwhitelisted keys.
+	selects.forEach(function(el, i) { selects[i] = _.pick(el, 'field', 'joinId'); });
+	joins.forEach(function(el, i) { joins[i]     = _.pick(el, 'id', 'table', 'joinId'); });
+	wheres.forEach(function(el, i) { wheres[i]   = _.pick(el); });
+	groups.forEach(function(el, i) { groups[i]   = _.pick(el); });
 
 	// Query requires a "from" and "select" at minimum.
 	if (!spec.joins.length > 0)   { throw Error('No tables listed in FROM clause.'); }
@@ -213,19 +233,19 @@ function joinOnce(spec, join, joins, names) {
 
 
 
-// function select(query, spec) {
-// 	var that = this;
+function select(query, spec) {
+	var that = this;
 
-// 	var fields = spec.selects.map(function(select) {
-// 		return spec.model[select]; 
-// 	});
+	var fields = spec.selects.map(function(select) {
+		return spec.model[select]; 
+	});
 
-// 	query.select(fields);
+	query.select(fields);
 
-// 	spec.joins.forEach(function(joinSpec) {
-// 		select.call(that, query, joinSpec);
-// 	});
-// }
+	spec.joins.forEach(function(joinSpec) {
+		select.call(that, query, joinSpec);
+	});
+}
 
 
 // // Apply where conditions and AND/OR logic.
@@ -258,22 +278,12 @@ function joinOnce(spec, join, joins, names) {
 
 
 
-// Parse definition for use with sql.define().
-function normalize(model) {
-	model.columns = model.columns.map(function(col) {
-		if (typeof col === 'string') {
-			return { name: col, property: col };
-		}
-		return { name: col.name, property: col.as || col.name };
-	});
-
-	// If primary key isn't set, use "id" alias or simplye "id".
-	if (!model.primary_key) { model.primary_key = 'id'; }
-	model.as = model.as || model.name;
-
-	return model;
+// Add linebreaks before keywords.
+function formatSQL(sql) {
+	var search  = /FROM|INNER JOIN|LEFT JOIN|RIGHT JOIN|OUTER JOIN|ON|WHERE|AND|GROUP BY|ORDER BY|LIMIT/g;
+	var replace = '\n$&';
+	return sql.replace(search, replace);
 }
-
 
 
 module.exports = Qb;
