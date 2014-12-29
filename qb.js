@@ -184,14 +184,14 @@ function joinOnce(spec, join, joins, names) {
 	// had told us explicitly to join through that table.
 
 	if (intermediate) {
-		var viaId   = _.uniqueId('_via_');
-		var joinVia = { table: intermediate, id: viaId, joinId: join.id };
+		var viaId    = _.uniqueId('_via_');
+		var joinVia  = { table: intermediate, id: viaId, joinId: join.id };
+		var joinSpec = { joins: [joinVia] };
 
-		spec.joins.push(joinVia);
 		join.joinId = viaId;
 
 		joins = joinOnce.call(this, spec, joinVia, joins, names);
-		joins = joinOnce.call(this, spec, join, joins, names);
+		joins = joinOnce.call(this, joinSpec, join, joins, names);
 		return joins;
 	}
 
