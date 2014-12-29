@@ -86,7 +86,7 @@ Qb.prototype.query = function(spec) {
 	var query = this.models[from].select([]);
 
 	join.call(this, query, spec);
-	// select.call(this, query, spec);
+	select.call(this, query, spec);
 	// where.call(this, query, spec);
 
 	var result    = query.toQuery().text;
@@ -137,6 +137,9 @@ function join(query, spec) {
 	var joins = this.models[from].as(alias);
 	var names = [{ alias: alias, used: 1 }];
 
+	// Save model of FROM table to spec.joins.
+	spec.joins[0].model = joins;
+
 	// For each join in spec.joins, append a JOIN clause to
 	// the "joins" model. Keep track of each alias and number
 	// of times used in "names" array (avoids reusing alias).
@@ -169,8 +172,7 @@ function joinOnce(spec, join, joins, names) {
 	var sourceJoin  = _.findWhere(spec.joins, { id: join.joinId }) || spec.joins[0];
 	var sourceTable = sourceJoin.table;
 	var sourceDef   = this.definitions[sourceTable];
-	var sourceAlias = sourceJoin.alias || sourceDef.as;
-	var sourceModel = this.models[sourceTable].as(sourceAlias);
+	var sourceModel = sourceJoin.model;
 
 	// To make things easier, users are allowed to define intermediate
 	// tables that can be joined through implicitly.
@@ -218,6 +220,7 @@ function joinOnce(spec, join, joins, names) {
 
 	// Now we can define and name the join model.
 	var joinModel = this.models[joinTable].as(joinAlias);
+	join.model = joinModel;
 
 	// Get keys for join. Default to primary key if source/target keys are not set.
 	var sourceKey = sourceDef.joins[joinTable].source_key || sourceDef.primary_key;
@@ -236,14 +239,11 @@ function joinOnce(spec, join, joins, names) {
 function select(query, spec) {
 	var that = this;
 
-	var fields = spec.selects.map(function(select) {
-		return spec.model[select]; 
-	});
-
-	query.select(fields);
-
-	spec.joins.forEach(function(joinSpec) {
-		select.call(that, query, joinSpec);
+	spec.selects.forEach(function(select) {
+		var join  = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
+		var definition = that.definitions[join.table];
+		var alias = _.findWhere(definition.columns, { name: select.field }).property || select.field;
+		query.select(join.model[alias]);
 	});
 }
 
