@@ -52,8 +52,8 @@ Qb.prototype.define = function(definitions) {
 			table.joins.push({ id: join, name: definition.joins[join].as });
 		}
 
-		// Add table to schema.
-		this.schema.push(table);
+		// Conditionally add table to schema.
+		if (!definition.hidden) { this.schema.push(table); }
 	}
 };
 
