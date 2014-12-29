@@ -64,7 +64,8 @@ Qb.prototype.query = function(spec) {
 	var that = this;
 
 	querySetup.call(this, spec);
-	var query = this.models[spec.from].select([]);
+	var from  = spec.joins[0].table;
+	var query = this.models[from].select([]);
 
 	join.call(this, query, spec);
 	// select.call(this, query, spec);
@@ -86,17 +87,23 @@ function querySetup(spec, joined, alias) {
 	if (!spec) { throw '"Query" called without parameters.'; }
 
 	// Allow user to use some alternate keywords in query spec.
-	spec.selects = spec.selects || spec.select || spec.fields   || [];
-	spec.joins   = spec.joins   || spec.join   || spec.include  || [];
-	spec.wheres  = spec.wheres  || spec.where  || spec.filters  || [];
-	spec.groups  = spec.groups  || spec.group  || spec.groupBy  || [];
+	var selects = spec.selects || spec.select || spec.fields   || [];
+	var joins   = spec.joins   || spec.join   || spec.include  || [];
+	var wheres  = spec.wheres  || spec.where  || spec.filters  || [];
+	var groups  = spec.groups  || spec.group  || spec.groupBy  || [];
+
+	// Filter out any nonwhitelisted keys.
+	selects.forEach(function(el, i) { selects[i] = _.pick(el, 'field', 'joinId'); });
+	joins.forEach(function(el, i)   { joins[i]   = _.pick(el, 'id', 'table', 'joinId'); });
+	wheres.forEach(function(el, i)  { wheres[i]  = _.pick(el); });
+	groups.forEach(function(el, i)  { groups[i]  = _.pick(el); });
 
 	// Prepend spec.from to the joins array if exists.
 	if (spec.from) { spec.joins.unshift({ table: spec.from }); }
 
 	// Query requires a "from" and "select" at minimum.
-	if (!spec.joins.length > 0)   { throw 'No tables listed in FROM clause.'; }
-	if (!spec.selects.length > 0) { throw 'No fields listed in SELECT clause.'; }
+	if (!spec.joins.length > 0)   { throw Error('No tables listed in FROM clause.'); }
+	// if (!spec.selects.length > 0) { throw 'No fields listed in SELECT clause.'; }
 }
 
 
@@ -166,7 +173,7 @@ function joinOnce(spec, join, joins, names) {
 		return joins;
 	}
 
-	// The "join" table is the table being JOINed. Similar to the
+	// The "join" table is the table being joined. Similar to the
 	// source attributes above, we need the table name and defs.
 
 	var joinTable = join.table;

@@ -161,30 +161,26 @@
 		e.preventDefault();
 		var that = this;
 
-		if (!this.result) { 
-			this.result = new Result(); 
-		}
+		if (!this.result) { this.result = new Result(); }
 
-		if (browserOnly) { 
-			this.result.browserOnly = true; 
-			return this.result.render();
-		}
-
-		var data = {
+		// Stringify collections for server.
+		var data = JSON.stringify({
 			joins: this.joinSet.collection.toJSON(),
 			selects: this.selectSet.collection.toJSON()
-		};
-
-		var req = $.ajax({ url: '/api/build', type: 'POST', data: data });
-
-		req.done(function(res) { 
-			that.result.res = res;
-			that.result.status = 'success';
 		});
 
-		req.fail(function(err, status) { 
-			that.result.err = err;
-			that.result.status = 'error';
+		var req = $.post('/api/build', { data: data });
+
+		// On successful POST.
+		req.done(function(res) {
+			_.extend(that.result, res);
+			that.result.render();
+		});
+
+		// Assume request only fails if Node isn't running.
+		req.fail(function(err, status) {
+			that.result.status = 'browserOnly';
+			that.result.render();
 		});
 
 		this.result.render();

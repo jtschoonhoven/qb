@@ -1,8 +1,20 @@
-div(class="panel panel-default")
-  div(class="panel-body")
-    if (browserOnly)
-      | Browser Only
-    if (status === 'error')
-      | Err
-    if (status === 'success')
-      | Ok
+if status === 'error'
+  pre(class="bg-danger") #{result}
+
+else if status === 'success'
+  pre #{result}
+
+else if status === 'browserOnly'
+  pre(class="bg-warning")
+    strong Node server not found.
+    br
+    | You're probably viewing this app on 
+    strong GitHub pages. 
+    | To fully demo the app you'll need to run it locally. 
+    | Don't worry, this is pretty easy. With Node and NPM installed, simply clone the repo then:
+    br
+    br
+    em npm install; npm install -g gulp; gulp start;
+
+else
+  pre(class="bg-info") Unknown error.

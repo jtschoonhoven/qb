@@ -6,10 +6,13 @@ div(class="form-group")
   div(class="col-sm-3 col-xs-6")
     select(name="model" class="form-control")
       option(disabled selected) something
+
         if isRoot
           each table in tables.toJSON()
             - var isSelected = model && table.id === model.get('table')
-            option(value=table.id selected=isSelected) #{table.name}
+            - var joinId = !parent.model || parent.model.id
+            option(value=table.id data-join-id=joinId selected=isSelected) #{table.name}
+
         else
           - var joinables = tables.get(parent.model.get('table')).get('joins')
           each joinable in joinables
@@ -17,9 +20,11 @@ div(class="form-group")
             option(value=joinable.id data-join-id=parent.model.id selected=isSelected) #{joinable.name}
 
   div(class="btn-group col-sm-8 col-xs-6")
+
     if (model)
       a.add-btn(href="#" class="btn btn-default")
         span(class="glyphicon glyphicon-plus")
+
     if (!isRoot || qb.joinSet.collection.length > 1)
       a.remove-btn(href="#" class="btn btn-default")
         span(class="glyphicon glyphicon-minus")

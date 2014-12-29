@@ -45,12 +45,18 @@ var qb = new Qb(definitions);
 
 // API endpoint to accept QB parameters and return SQL.
 app.post('/api/build', function(req, res) {
-	var spec = req.body;
-  try { res.type('text/plain').send(qb.query(spec)); }
+	var spec = JSON.parse(req.body.data);
+  var status = 'success';
+
+  try { var result = qb.query(spec); }
   catch(err) {
     console.log(err);
-    res.type('text/plain').send(err);
+    console.log(spec);
+    status = 'error';
+    result = err.message;
   }
+
+  res.json({ status: status, result: result });
 });
 
 // API endpoint that returns QB schema.
