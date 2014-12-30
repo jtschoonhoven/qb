@@ -15,10 +15,11 @@ var _   = require('underscore');
 // The schema object is a map of the db structure.
 // The definitions object is a copy of user-defined definitions.
 
-function Qb(definitions) {
+function Qb(definitions, dialect) {
 	this.models = {};
 	this.schema = [];
 	this.definitions = {};
+	if (dialect) { sql.setDialect(dialect); }
 	if (definitions) { this.define(definitions); }
 }
 
@@ -117,7 +118,7 @@ function querySetup(spec, joined, alias) {
 	if (spec.from) { spec.joins.unshift({ table: spec.from }); }
 
 	// Filter out any nonwhitelisted keys.
-	selects.forEach(function(el,i) { selects[i] = _.pick(el, 'field', 'joinId'); });
+	selects.forEach(function(el,i) { selects[i] = _.pick(el, 'method', 'field', 'joinId'); });
 	joins.forEach(function(el,i)   { joins[i]   = _.pick(el, 'id', 'table', 'joinId'); });
 	wheres.forEach(function(el,i)  { wheres[i]  = _.pick(el); });
 	groups.forEach(function(el,i)  { groups[i]  = _.pick(el); });
@@ -233,6 +234,7 @@ function joinOnce(spec, join, joins, names) {
 }
 
 
+
 // Add a SELECT clause for each field in spec.selects.
 function select(query, spec) {
 	var that = this;
@@ -243,6 +245,7 @@ function select(query, spec) {
 
 		var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
 		var selection = join.model[select.field];
+		var distinct = sql.functionCallCreator('DISTINCT');
 
 		// If select.field doesn't exist in join.model, the user
 		// is probably (incorrectly) referring to a field by its
@@ -254,6 +257,8 @@ function select(query, spec) {
 			var column  = _.findWhere(columns, { name: select.field });
 			selection   = join.model[column.property];
 		}
+
+		var selection = distinct(selection);
 
 		if (!selection) { throw Error('Column "' + select.field + '" not defined in "' + join.table + '".'); }
 

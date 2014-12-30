@@ -33,10 +33,10 @@
 	var Select = Backbone.Model.extend();
 
 	Select.prototype.setAttributes = function(input) {
-		var func   = input[0].value;
+		var method = input[0].value;
 		var joinId = input[1].joinId;
 		var field  = input[1].value;
-		this.set({ func: func, joinId: joinId, field: field });
+		this.set({ method: method, joinId: joinId, field: field });
 	};
 
 

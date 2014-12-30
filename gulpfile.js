@@ -58,6 +58,6 @@ gulp.task('bundle', function() {
 
 
 // Rebundle on change.
-gulp.task('watch', function() {
+gulp.task('watch', ['bundle'], function() {
 	gulp.watch(['./example-app/app.js', './example-app/templates/*'], ['bundle']);
 });
