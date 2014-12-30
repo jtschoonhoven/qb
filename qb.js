@@ -19,9 +19,16 @@ function Qb(definitions, dialect) {
 	this.models = {};
 	this.schema = [];
 	this.definitions = {};
+	this.functions = sql.functions;
+
 	if (dialect) { sql.setDialect(dialect); }
 	if (definitions) { this.define(definitions); }
 }
+
+
+
+Qb.prototype.registerFunction = function(func) {
+};
 
 
 
@@ -50,7 +57,12 @@ Qb.prototype.define = function(definitions) {
 		// Add array of tables that may be joined on table.
 		table.joins = [];
 		for (var join in definition.joins) {
-			table.joins.push({ id: join, name: definition.joins[join].as });
+			var joinDef  = definition.joins[join];
+			var joinName = joinDef.as || definitions[join].as;
+			var joinSpec = { id: join, name: joinName };
+
+			// Conditionally add join to list of joins.
+			if(!joinDef.hidden) { table.joins.push(joinSpec); }
 		}
 
 		// Conditionally add table to schema.
@@ -94,8 +106,8 @@ Qb.prototype.query = function(spec) {
 	var result    = query.toQuery().text;
 	var formatted = formatSQL(result);
 
-	console.log('\n');
-	console.log(formatted);
+	// console.log('\n');
+	// console.log(formatted);
 
 	return formatted;
 };
@@ -109,19 +121,26 @@ function querySetup(spec, joined, alias) {
 	if (!spec) { throw Error('"Query" called without parameters.'); }
 
 	// Allow user to use some alternate keywords in query spec.
-	var selects = spec.selects = spec.selects || spec.select || spec.fields   || [];
-	var joins   = spec.joins   = spec.joins   || spec.join   || spec.include  || [];
-	var wheres  = spec.wheres  = spec.wheres  || spec.where  || spec.filters  || [];
-	var groups  = spec.groups  = spec.groups  || spec.group  || spec.groupBy  || [];
+	spec.selects = spec.selects || spec.select || spec.fields   || [];
+	spec.joins   = spec.joins   || spec.join   || spec.include  || [];
+	spec.wheres  = spec.wheres  || spec.where  || spec.filters  || [];
+	spec.groups  = spec.groups  || spec.group  || spec.groupBy  || [];
 
 	// Prepend spec.from to the joins array if exists.
 	if (spec.from) { spec.joins.unshift({ table: spec.from }); }
 
-	// Filter out any nonwhitelisted keys.
-	selects.forEach(function(el,i) { selects[i] = _.pick(el, 'method', 'field', 'joinId'); });
-	joins.forEach(function(el,i)   { joins[i]   = _.pick(el, 'id', 'table', 'joinId'); });
-	wheres.forEach(function(el,i)  { wheres[i]  = _.pick(el); });
-	groups.forEach(function(el,i)  { groups[i]  = _.pick(el); });
+	// For each array, convert to object if given as
+	// string and whitelist keys.
+
+	spec.selects = spec.selects.map(function(el) {
+		if (typeof el === 'string') { return { field: el }; }
+		return _.pick(el, 'functions', 'field', 'joinId'); 
+	});
+
+	spec.joins = spec.joins.map(function(el) {
+		if (typeof el === 'string') { return { table: el }; }
+		return _.pick(el, 'id', 'table', 'joinId'); 
+	});
 
 	// Query requires a "from" and "select" at minimum.
 	if (!spec.joins.length > 0)   { throw Error('No tables listed in FROM clause.'); }
@@ -181,7 +200,7 @@ function joinOnce(spec, join, joins, names) {
 		// in the same format as an element of spec.joins. Add the join to a
 		// stubbed "spec" object that we'll use in a moment.
 
-		var joinVia  = { table: intermediate, id: viaId, joinId: join.id };
+		var joinVia  = { table: intermediate, id: viaId, joinId: join.joinId };
 		var joinSpec = { joins: [joinVia] };
 
 		// Update current join so it joins via the intermediate table.
@@ -191,6 +210,7 @@ function joinOnce(spec, join, joins, names) {
 		// current join to the intermediate using the stubbed joinSpec.
 
 		joins = joinOnce.call(this, spec, joinVia, joins, names);
+		console.log('!!!!!!!!!!')
 		joins = joinOnce.call(this, joinSpec, join, joins, names);
 
 		return joins;
@@ -227,6 +247,11 @@ function joinOnce(spec, join, joins, names) {
 
 	// Get the alias ("AS") used for join/source key if exists, or just use the key as is.
 	sourceKey = _.findWhere(sourceDef.columns, { name: sourceKey }).property || sourceKey;
+
+	if (join.table === 'posts_tags') {
+		console.log(joinKey)
+		console.log(joinDef.columns)
+	}
 	joinKey   = _.findWhere(joinDef.columns, { name: joinKey }).property || joinKey;
 
 	// Add a JOIN clause and return joins.
@@ -257,8 +282,6 @@ function select(query, spec) {
 			var column  = _.findWhere(columns, { name: select.field });
 			selection   = join.model[column.property];
 		}
-
-		var selection = distinct(selection);
 
 		if (!selection) { throw Error('Column "' + select.field + '" not defined in "' + join.table + '".'); }
 

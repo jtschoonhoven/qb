@@ -3,7 +3,7 @@
   "id": "users",
   "name": "Users",
   "columns": [
-   "User ID",
+   "id",
    "Join date"
   ],
   "joins": [
@@ -41,6 +41,10 @@
    {
     "id": "tags",
     "name": "Tags"
+   },
+   {
+    "id": "taggings",
+    "name": "Taggings"
    }
   ]
  },
@@ -67,7 +71,8 @@
     "name": "Signature tags"
    },
    {
-    "id": "taggings"
+    "id": "taggings",
+    "name": "Taggings"
    }
   ]
  },
@@ -80,35 +85,16 @@
   ],
   "joins": [
    {
+    "id": "taggings",
+    "name": "Taggings"
+   },
+   {
     "id": "users",
     "name": "Users signed"
    },
    {
     "id": "petitions",
     "name": "Petitions tagged"
-   },
-   {
-    "id": "taggings"
-   }
-  ]
- },
- {
-  "id": "taggings",
-  "name": "Taggings",
-  "columns": [
-   "id",
-   "tag_id",
-   "taggable_id"
-  ],
-  "joins": [
-   {
-    "id": "petitions"
-   },
-   {
-    "id": "signatures"
-   },
-   {
-    "id": "tags"
    }
   ]
  }

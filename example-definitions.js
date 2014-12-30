@@ -1,4 +1,4 @@
-var definitions = {
+module.exports = {
 
 	users: {
 		name: "users",
@@ -72,6 +72,3 @@ var definitions = {
 	}
 
 };
-
-
-if (module && module.exports) { module.exports = definitions; }

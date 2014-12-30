@@ -2,8 +2,8 @@
 var mocha       = require('mocha')
 ,   expect      = require('chai').expect
 ,   util        = require('util')
-,   Qb          = require('./qb')
-,   definitions = require('./example-definitions');
+,   Qb          = require('../qb')
+,   definitions = require('../example-definitions');
 
 
 var qb = new Qb(definitions);
@@ -28,7 +28,7 @@ var spec2 = {
 var spec3 = {
   from: 'petitions',
   joins: [{ table: 'tags' }],
-  select: [{ field: 'id' }]
+  select: [{ field: 'id' }, 'id']
 };
 
 // Join same table twice.
@@ -38,10 +38,11 @@ var spec4 = {
   select: [{ field: 'id' }]
 };
 
-qb.query(spec1);
-qb.query(spec2);
-qb.query(spec3);
-qb.query(spec4);
+
+// qb.query(spec1);
+// qb.query(spec2);
+// qb.query(spec3);
+// qb.query(spec4);
 
 
 describe('Testing', function() {

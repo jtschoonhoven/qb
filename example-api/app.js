@@ -34,7 +34,7 @@ app.use(express.static(path.join(__dirname, '../')));
 // Query Builder
 // ==================================================
 
-var definitions = require('../example-definitions');
+var definitions = require('../test/test-definitions');
 var Qb = require('../qb');
 var qb = new Qb(definitions, 'postgres');
 
@@ -48,13 +48,14 @@ app.post('/api/build', function(req, res) {
 	var spec = JSON.parse(req.body.data);
   var status = 'success';
 
-  try { var result = qb.query(spec); }
-  catch(err) {
-    console.log(err);
-    console.log(spec);
-    status = 'error';
-    result = err.message;
-  }
+  var result = qb.query(spec);
+  // try { var result = qb.query(spec); }
+  // catch(err) {
+  //   console.log(err);
+  //   console.log(spec);
+  //   status = 'error';
+  //   result = err.message;
+  // }
 
   res.json({ status: status, result: result });
 });
