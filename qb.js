@@ -41,6 +41,7 @@ Qb.prototype.define = function(definitions) {
 	// Call sql.define on each model in definition.
 	for (var def in definitions) {
 		this.definitions[def] = normalize(definitions[def]);
+		this.definitions[def].name = def;
 		this.models[def] = sql.define(this.definitions[def]);
 	}
 
@@ -49,7 +50,7 @@ Qb.prototype.define = function(definitions) {
 
 	for (def in this.definitions) {
 		var definition = that.definitions[def];
-		var table      = { id: def, name: definition.as };
+		var table      = { id: def, name: definition.as || def };
 		table.columns  = definition.columns.map(function(col) {
 			return col.property;
 		});
@@ -74,7 +75,7 @@ Qb.prototype.define = function(definitions) {
 
 // Parse definition for use with sql.define().
 function normalize(model) {
-	model.columns = model.columns.map(function(col) {
+	model.columns = _.map(model.columns || [], function(col) {
 		if (typeof col === 'string') {
 			return { name: col, property: col };
 		}
@@ -103,11 +104,12 @@ Qb.prototype.query = function(spec) {
 	// where.call(this, query, spec);
 	// group.call(this, query, spec);
 
-	var result    = query.toQuery().text;
+	this.lastQuery = query.toQuery();
+	var result    = this.lastQuery.text;
 	var formatted = formatSQL(result);
 
-	// console.log('\n');
-	// console.log(formatted);
+	console.log('\n');
+	console.log(formatted);
 
 	return formatted;
 };
@@ -210,7 +212,6 @@ function joinOnce(spec, join, joins, names) {
 		// current join to the intermediate using the stubbed joinSpec.
 
 		joins = joinOnce.call(this, spec, joinVia, joins, names);
-		console.log('!!!!!!!!!!')
 		joins = joinOnce.call(this, joinSpec, join, joins, names);
 
 		return joins;
@@ -247,11 +248,6 @@ function joinOnce(spec, join, joins, names) {
 
 	// Get the alias ("AS") used for join/source key if exists, or just use the key as is.
 	sourceKey = _.findWhere(sourceDef.columns, { name: sourceKey }).property || sourceKey;
-
-	if (join.table === 'posts_tags') {
-		console.log(joinKey)
-		console.log(joinDef.columns)
-	}
 	joinKey   = _.findWhere(joinDef.columns, { name: joinKey }).property || joinKey;
 
 	// Add a JOIN clause and return joins.

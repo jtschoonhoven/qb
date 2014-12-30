@@ -4,8 +4,8 @@ var mocha       = require('mocha')
 
 describe('Register Functions', function() {
 
-  it('Is true', function() {
-    expect(true).to.be.true;
-  });
+  it('Adds a new function to qb.functions', function() {});
+
+  it('ok')
 
 });
