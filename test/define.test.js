@@ -24,13 +24,26 @@ describe.only('Define', function() {
   });
 
 
-  describe('Declaring joins', function() {
+  describe('Declaring columns', function() {
 
-    it('Columns may be declared in an array', function() {
-      var definitions = { users: { columns: ['id', 'created_at'] } };
+    it('Columns may be declared as an array of strings', function() {
+      var definitions = { users: { columns: ['id', 'uid'] } };
       var qb = new Qb(definitions);
-      console.log(qb.schema[0])
-      expect(qb.schema[0])
+      var expected = { 
+        id:  { name: "id",  property: "id" }, 
+        uid: { name: "uid", property: "uid" } 
+      };
+      expect(qb.definitions.users.columns).to.eql(expected);
+    });
+
+    it('Columns may be declared as an array of objects', function() {
+      var definitions = { users: { columns: [{ name: 'id' }, { name: 'uid' }] } };
+      var qb = new Qb(definitions);
+      var expected = { 
+        id:  { name: "id",  property: "id" }, 
+        uid: { name: "uid", property: "uid" } 
+      };
+      expect(qb.definitions.users.columns).to.eql(expected);
     });
 
   });

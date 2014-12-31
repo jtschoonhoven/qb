@@ -8,10 +8,10 @@ module.exports = {
 
   users: {
     as: "Users",
-    columns: {
-      id: "User ID",
-      name: "Full name",
-      created_at: "Join date"
+    columns: { 
+      id: "User ID", 
+      name: "Full name", 
+      created_at: "Join date" 
     },
     joins: {
       posts: { target_key: "user_id" }, // "target_key" is the key used to join the foreign table.
@@ -22,10 +22,10 @@ module.exports = {
   posts: {
     as: "Blog Posts",
     columns: {
-      id: { as: "Post ID" },
-      user_id: { as: "Author" },
-      text: { as: "Text" },
-      created_at: { as: "Post Date" }
+      id: "Post ID",
+      user_id: "Author",
+      text: "Text",
+      created_at: "Post Date"
     },
     joins: {
       users: { source_key: "user_id", as: "Author" }, // "source_key" is the key used to join this table.

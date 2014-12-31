@@ -36,58 +36,69 @@ Qb.prototype.registerFunction = function(func) {
 // This is done only once to configure the Qb instance.
 
 Qb.prototype.define = function(definitions) {
-	var that = this;
 
-	// Call sql.define on each model in definition.
-	for (var def in definitions) {
-		this.definitions[def] = normalize(definitions[def]);
-		this.definitions[def].name = def;
-		this.models[def] = sql.define(this.definitions[def]);
-	}
+	// Define each model in definitions.
+	for (var tableName in definitions) {
+		var tableDef = definitions[tableName];
+		var columns  = {};
 
-	// Populate "schema" with each table in definitions.
-	// Include arrays of columns and allowed join tables.
+		// Columns may be defined as an object or as an array 
+		// of strings/objects. Detect type and normalize.
 
-	for (def in this.definitions) {
-		var definition = that.definitions[def];
-		var table      = { id: def, name: definition.as || def };
-		table.columns  = definition.columns.map(function(col) {
-			return col.property;
+		if (_.isArray(tableDef.columns)) {
+			tableDef.columns.forEach(function(col) {
+				if (_.isString(col)) { 
+					columns[col] = { name: col, property: col }; 
+				}
+				else if (_.isObject(col)) {
+					var colDef = { name: col.name, property: col.property || col.name };
+					columns[colDef.property] = colDef;
+				}
+			});
+		}
+
+		// Overwrite user defined columns with normalized.
+		tableDef.columns = columns;
+
+		// Primary key defaults to "id" if not set.
+		if (!tableDef.columns[tableDef.primary_key]) {
+			tableDef.primary_key = tableDef.primary_key = 'id'; 
+		}
+
+		// Deep copy columns for use with sql.define.
+		var sqlColumns = _.toArray(columns).map(function(col) { 
+			return { name: col.name, property: col.property }
 		});
 
-		// Add array of tables that may be joined on table.
-		table.joins = [];
-		for (var join in definition.joins) {
-			var joinDef  = definition.joins[join];
-			var joinName = joinDef.as || definitions[join].as;
-			var joinSpec = { id: join, name: joinName };
+		// Register the model with sql.define.
+		var sqlDef = { name: tableName, columns: sqlColumns };
+		this.models[tableName] = sql.define(sqlDef);
 
-			// Conditionally add join to list of joins.
-			if(!joinDef.hidden) { table.joins.push(joinSpec); }
-		}
-
-		// Conditionally add table to schema.
-		if (!definition.hidden) { this.schema.push(table); }
+		// Add to this.definitions.
+		this.definitions[tableName] = tableDef;
 	}
+
+	// // Populate "schema" with tables from this.definitions.
+	// for (tableName in this.definitions) {
+	// 	var tableDef = this.definitions[tableName];
+
+
+
+	// 	// Add array of tables that may be joined on table.
+	// 	var joins = {};
+	// 	for (var join in tableDef.joins) {
+	// 		var joinDef  = tableDef.joins[join];
+	// 		var joinName = joinDef.as || definitions[join].as;
+	// 		var joinSpec = { id: join, name: joinName };
+
+	// 		// Conditionally add join to list of joins.
+	// 		if(!joinDef.hidden) { table.joins.push(joinSpec); }
+	// 	}
+
+	// 	// Conditionally add table to schema.
+	// 	if (!tableDef.hidden) { this.schema.push(table); }
+	// }
 };
-
-
-
-// Parse definition for use with sql.define().
-function normalize(model) {
-	model.columns = _.map(model.columns || [], function(col) {
-		if (typeof col === 'string') {
-			return { name: col, property: col };
-		}
-		return { name: col.name, property: col.as || col.name };
-	});
-
-	// If primary key isn't set, assume "id".
-	if (!model.primary_key) { model.primary_key = 'id'; }
-	model.as = model.as || model.name;
-
-	return model;
-}
 
 
 
