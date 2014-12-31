@@ -37,46 +37,103 @@ Qb.prototype.registerFunction = function(func) {
 
 Qb.prototype.define = function(definitions) {
 
-	// Define each model in definitions.
+	// Normalize and apply defaults.
+	definitions = this.normalize(definitions);
+
 	for (var tableName in definitions) {
 		var tableDef = definitions[tableName];
-		var columns  = {};
 
-		// Columns may be defined as an object or as an array 
-		// of strings/objects. Detect type and normalize.
-
-		if (_.isArray(tableDef.columns)) {
-			tableDef.columns.forEach(function(col) {
-				if (_.isString(col)) { 
-					columns[col] = { name: col, property: col }; 
-				}
-				else if (_.isObject(col)) {
-					var colDef = { name: col.name, property: col.property || col.name };
-					columns[colDef.property] = colDef;
-				}
-			});
-		}
-
-		// Overwrite user defined columns with normalized.
-		tableDef.columns = columns;
-
-		// Primary key defaults to "id" if not set.
-		if (!tableDef.columns[tableDef.primary_key]) {
-			tableDef.primary_key = tableDef.primary_key = 'id'; 
-		}
-
-		// Deep copy columns for use with sql.define.
-		var sqlColumns = _.toArray(columns).map(function(col) { 
+		// Deep copy & modify columns for use with sql.define.
+		var sqlColumns = _.toArray(tableDef.columns).map(function(col) { 
 			return { name: col.name, property: col.property }
 		});
 
 		// Register the model with sql.define.
 		var sqlDef = { name: tableName, columns: sqlColumns };
 		this.models[tableName] = sql.define(sqlDef);
+	}
 
-		// Add to this.definitions.
+	this.buildSchema(definitions);
+	return definitions;
+};
+
+
+
+// Users may define columns and joins in a few different
+// formats. Standardize formats and apply defaults.
+
+Qb.prototype.normalize = function(definitions) {
+	for (var tableName in definitions) {
+		var tableDef = definitions[tableName];
+		var columns  = {};
+
+		// Columns may be defined as an object of strings/objects 
+		// or as an array of strings/objects. These if/else blocks 
+		// normalize the definitions and call sql.define on each.
+
+		if (_.isArray(tableDef.columns)) {
+			tableDef.columns.forEach(function(col) {
+
+				if (_.isString(col)) { 
+					columns[col] = { name: col, property: col }; 
+				} 
+
+				else if (_.isObject(col)) {
+					var property = col.property || col.name;
+					if (col.primary_key) { tableDef.primary_key = property; }
+					columns[property] =  { name: col.name, property: property };
+				}
+			});
+		}	
+
+		else if (_.isObject(tableDef.columns)) {
+			for (var colName in tableDef.columns) {
+				var col = tableDef.columns[colName];
+
+				if (!col || _.isString(col)) {
+					var property = col || colName;
+					columns[property] = { name: colName, property: property };
+				}
+
+				else if (_.isObject(col)) {
+					var name = col.name || colName;
+					var property = col.property || name;
+					if (col.primary_key) { tableDef.primary_key = property; }
+					columns[property] = { name: name, property: property };
+				}
+			}
+		}
+		tableDef.columns = columns;
+
+		// If primary key is not set or else does not match a
+		// defined column, check if it instead matches column name.
+		// If that fails, set to column named "id", if exists.
+
+		var pk = tableDef.primary_key;
+		if (!tableDef.columns[pk]) {
+			if (pk) { tableDef.primary_key = _.chain(columns).toArray().findWhere({ name: pk }).value(); }
+			else {    tableDef.primary_key = _.chain(columns).toArray().findWhere({ name: 'id' }).value(); }
+		}
+
 		this.definitions[tableName] = tableDef;
 	}
+
+	return definitions;
+};
+
+
+
+// Create a map of the database (schema) that shows defined
+// tables in the DB and how to join them. Qb.schema is
+// meant to be exported for user by a service or end user.
+
+Qb.prototype.buildSchema = function(definitions) {
+	var schema = {};
+
+	for (var tableName in definitions) {
+		var tableDef = definitions[tableName];
+	}
+
 
 	// // Populate "schema" with tables from this.definitions.
 	// for (tableName in this.definitions) {
