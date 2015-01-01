@@ -9,7 +9,14 @@ describe.only('Define', function() {
 
   describe('Hidden', function() {
 
-    var definitions = { user_public_info: {}, user_private_info: { hidden: true } };
+    var definitions = { 
+      user_public_info: { 
+        columns: [{ name: 'id', hidden: true }, 'name'],
+        joins: { user_private_info: {}, user_public_info: {} }
+      }, 
+      user_private_info: { hidden: true } 
+    };
+
     var qb = new Qb(definitions);
 
     it('definitions are not included in qb.schema.', function() {
@@ -17,9 +24,16 @@ describe.only('Define', function() {
       expect(_.findWhere(qb.schema, { name: 'user_private_info'})).to.not.exist;
     });
 
-    it('definitions are included in qb.models.', function() {
-      expect(qb.models.user_public_info).to.exist;
-      expect(qb.models.user_private_info).to.exist;
+    it('columns are excluded from qb.schema.', function() {
+      expect(qb.schema.length).to.equal(1);
+      expect(_.findWhere(qb.schema[0].columns, { name: 'id' })).to.not.exist;
+      expect(_.findWhere(qb.schema[0].columns, { name: 'name' })).to.exist;
+    });
+
+    it('tables are excluded from joins in qb.schema.', function() {
+      expect(qb.schema.length).to.equal(1);
+      expect(_.findWhere(qb.schema[0].joins, { name: 'user_private_info' })).to.not.exist;
+      expect(_.findWhere(qb.schema[0].joins, { name: 'user_public_info' })).to.exist;
     });
 
   });
@@ -28,8 +42,8 @@ describe.only('Define', function() {
   describe('Define columns', function() {
 
     var expected = { 
-      id:  { name: "id",  property: undefined }, 
-      uid: { name: "uid", property: undefined } 
+      id:  { name: "id",  property: undefined, hidden: undefined }, 
+      uid: { name: "uid", property: undefined, hidden: undefined } 
     };
 
     it('as an array of strings', function() {
@@ -56,8 +70,8 @@ describe.only('Define', function() {
   describe('Define columns with alias', function() {
 
     var expected = {
-      id: { name: "id", property: "ID" },
-      uid: { name: "uid", property: "UID" }
+      id: { name: "id", property: "ID", hidden: undefined },
+      uid: { name: "uid", property: "UID", hidden: undefined }
     };
 
     it('as an array of objects', function() {
@@ -88,13 +102,13 @@ describe.only('Define', function() {
     };
 
     it('as an array of objects', function() {
-      var def = { users: { joins: [{ name: 'posts', target_key: 'uid' }] } };
+      var def = { users: { joins: [{ name: 'posts', target_key: 'uid' }] }, posts: {} };
       var qb = new Qb(def);
       expect(qb.definitions.users.joins).to.eql(expected);
     });
 
     it('as a nested object', function() {
-      var def = { users: { joins: { posts: { target_key: 'uid' }} } };
+      var def = { users: { joins: { posts: { target_key: 'uid' } } }, posts: {} };
       var qb = new Qb(def);
       expect(qb.definitions.users.joins).to.eql(expected);
     });
@@ -109,13 +123,13 @@ describe.only('Define', function() {
     };
 
     it('as an array of objects', function() {
-      var def = { users: { joins: [{ name: 'posts', target_key: 'uid', alias: 'Postings' }] } };
+      var def = { users: { joins: [{ name: 'posts', target_key: 'uid', alias: 'Postings' }] }, posts: {} };
       var qb = new Qb(def);
       expect(qb.definitions.users.joins).to.eql(expected);
     });
 
     it('as a nested object', function() {
-      var def = { users: { joins: { posts: { target_key: 'uid', alias: 'Postings' }} } };
+      var def = { users: { joins: { posts: { target_key: 'uid', alias: 'Postings' }} }, posts: {} };
       var qb = new Qb(def);
       expect(qb.definitions.users.joins).to.eql(expected);
     });

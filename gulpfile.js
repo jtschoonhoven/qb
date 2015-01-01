@@ -2,6 +2,7 @@
 var Qb          = require('./qb')
 ,   fs          = require('fs')
 ,   gulp        = require('gulp')
+,   mocha       = require('gulp-mocha')
 ,   gutil       = require('gulp-util')
 ,   jshint      = require('gulp-jshint')
 ,   stylish     = require('jshint-stylish')
@@ -24,6 +25,19 @@ gulp.task('lint', function() {
   return gulp.src(['qb.js'])
     .pipe(jshint({}))
     .pipe(jshint.reporter(stylish));
+});
+
+
+// Test.
+gulp.task('test', function () {
+  return gulp.src('test/*.test.js', { read: false })
+    .pipe(mocha({reporter: 'spec'}));
+});
+
+
+// Retest on change.
+gulp.task('watch-test', ['test'], function() {
+  gulp.watch(['qb.js', 'test/*..js'], ['test']);
 });
 
 

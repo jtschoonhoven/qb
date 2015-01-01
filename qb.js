@@ -77,12 +77,12 @@ Qb.prototype.normalize = function(definitions) {
 			tableDef.columns.forEach(function(col) {
 
 				if (_.isString(col)) { 
-					columns[col] = { name: col, property: undefined }; 
+					columns[col] = { name: col, property: undefined, hidden: undefined }; 
 				} 
 
 				else if (_.isObject(col)) {
 					if (col.primary_key) { tableDef.primary_key = col.name; }
-					columns[col.name] =  { name: col.name, property: col.property };
+					columns[col.name] =  { name: col.name, property: col.property, hidden: col.hidden };
 				}
 			});
 		}	
@@ -92,13 +92,13 @@ Qb.prototype.normalize = function(definitions) {
 				var col = tableDef.columns[colName];
 
 				if (!col || _.isString(col)) {
-					columns[colName] = { name: colName, property: col || undefined };
+					columns[colName] = { name: colName, property: col || undefined, hidden: undefined };
 				}
 
 				else if (_.isObject(col)) {
 					var name = col.name || colName;
 					if (col.primary_key) { tableDef.primary_key = name; }
-					columns[name] = { name: name, property: col.property };
+					columns[name] = { name: name, property: col.property, hidden: col.hidden };
 				}
 			}
 		}
@@ -110,6 +110,7 @@ Qb.prototype.normalize = function(definitions) {
 
 		if (_.isArray(tableDef.joins)) {
 			tableDef.joins.forEach(function(join) {
+				if (!definitions[join.name]) { throw Error('Table ' + tableName + ' joined on undefined table ' + join.name + '.'); }
 				var sourceKey = join.source_key || tableDef.primary_key || 'id';
 				var targetKey = join.target_key || definitions[join.name].primary_key || 'id';
 				joins[join.name] = { name: join.name, alias: join.alias, source_key: sourceKey, target_key: targetKey };
@@ -120,6 +121,8 @@ Qb.prototype.normalize = function(definitions) {
 			for (var joinName in tableDef.joins) {
 				var join = tableDef.joins[joinName];
 				var name = join.name || joinName;
+
+				if (!definitions[name]) { throw Error('Table ' + tableName + ' joined on undefined table ' + name + '.'); }
 
 				// Source/target keys default to primary_key if exists, else "id".
 				var sourceKey = join.source_key || tableDef.primary_key || 'id';
@@ -143,6 +146,11 @@ Qb.prototype.normalize = function(definitions) {
 // tables in the DB and how to join them. Qb.schema is
 // meant to be exported for user by a service or end user.
 
+// Note: right now, schema is essentially a copy of
+// definitions that uses arrays. This is because my own use
+// case is for this to work with Backbone, though I'm unsure
+// if that is the best solution in general.
+
 Qb.prototype.buildSchema = function(definitions) {
 	var publicDefinitions = _.omit(definitions, function(def) { return def.hidden; });
 
@@ -151,11 +159,23 @@ Qb.prototype.buildSchema = function(definitions) {
 
 	for (var tableName in publicDefinitions) {
 		var tableDef = definitions[tableName];
+
+		// Convert joins and columns to arrays. Omit columns
+		// marked "hidden" or joins onto hidden tables.
+
+		var colArray = _.toArray(tableDef.columns);
+		var publicCols = _.reject(colArray, { hidden: true });
+
+		var joinArray = _.toArray(tableDef.joins);
+		var publicJoins = joinArray.filter(function(join) {
+			return !definitions[join.name].hidden;
+		});
+
 		var tableSchema = {
 			name: tableDef.name,
 			alias: tableDef.property,
-			columns: _.omit(tableDef.columns, function(col)  { return col.hidden }),
-			joins:   _.omit(tableDef.columns, function(join) { return join.hidden })
+			columns: publicCols,
+			joins: publicJoins
 		};
 		this.schema.push(tableSchema);
 	}
