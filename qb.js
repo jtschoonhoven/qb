@@ -54,7 +54,6 @@ Qb.prototype.define = function(definitions) {
 	}
 
 	this.buildSchema(definitions);
-	return definitions;
 };
 
 
@@ -66,22 +65,24 @@ Qb.prototype.normalize = function(definitions) {
 	for (var tableName in definitions) {
 		var tableDef = definitions[tableName];
 		var columns  = {};
+		var joins    = {};
+
+		tableDef.name = tableName;
 
 		// Columns may be defined as an object of strings/objects 
 		// or as an array of strings/objects. These if/else blocks 
-		// normalize the definitions and call sql.define on each.
+		// normalize to nested object.
 
 		if (_.isArray(tableDef.columns)) {
 			tableDef.columns.forEach(function(col) {
 
 				if (_.isString(col)) { 
-					columns[col] = { name: col, property: col }; 
+					columns[col] = { name: col, property: undefined }; 
 				} 
 
 				else if (_.isObject(col)) {
-					var property = col.property || col.name;
-					if (col.primary_key) { tableDef.primary_key = property; }
-					columns[property] =  { name: col.name, property: property };
+					if (col.primary_key) { tableDef.primary_key = col.name; }
+					columns[col.name] =  { name: col.name, property: col.property };
 				}
 			});
 		}	
@@ -91,29 +92,44 @@ Qb.prototype.normalize = function(definitions) {
 				var col = tableDef.columns[colName];
 
 				if (!col || _.isString(col)) {
-					var property = col || colName;
-					columns[property] = { name: colName, property: property };
+					columns[colName] = { name: colName, property: col || undefined };
 				}
 
 				else if (_.isObject(col)) {
 					var name = col.name || colName;
-					var property = col.property || name;
-					if (col.primary_key) { tableDef.primary_key = property; }
-					columns[property] = { name: name, property: property };
+					if (col.primary_key) { tableDef.primary_key = name; }
+					columns[name] = { name: name, property: col.property };
 				}
 			}
 		}
+
 		tableDef.columns = columns;
 
-		// If primary key is not set or else does not match a
-		// defined column, check if it instead matches column name.
-		// If that fails, set to column named "id", if exists.
+		// Joins may be defined as an array of objects or as a flat or
+		// nested object. Normalize to nested object.
 
-		var pk = tableDef.primary_key;
-		if (!tableDef.columns[pk]) {
-			if (pk) { tableDef.primary_key = _.chain(columns).toArray().findWhere({ name: pk }).value(); }
-			else {    tableDef.primary_key = _.chain(columns).toArray().findWhere({ name: 'id' }).value(); }
+		if (_.isArray(tableDef.joins)) {
+			tableDef.joins.forEach(function(join) {
+				var sourceKey = join.source_key || tableDef.primary_key || 'id';
+				var targetKey = join.target_key || definitions[join.name].primary_key || 'id';
+				joins[join.name] = { name: join.name, alias: join.alias, source_key: sourceKey, target_key: targetKey };
+			});
 		}
+
+		else if (_.isObject(tableDef.joins)) {
+			for (var joinName in tableDef.joins) {
+				var join = tableDef.joins[joinName];
+				var name = join.name || joinName;
+
+				// Source/target keys default to primary_key if exists, else "id".
+				var sourceKey = join.source_key || tableDef.primary_key || 'id';
+				var targetKey = join.target_key || definitions[name].primary_key || 'id';
+
+				joins[name] = { name: name, alias: join.alias, source_key: sourceKey, target_key: targetKey };
+			}
+		}
+
+		tableDef.joins = joins;
 
 		this.definitions[tableName] = tableDef;
 	}
@@ -128,33 +144,21 @@ Qb.prototype.normalize = function(definitions) {
 // meant to be exported for user by a service or end user.
 
 Qb.prototype.buildSchema = function(definitions) {
-	var schema = {};
+	var publicDefinitions = _.omit(definitions, function(def) { return def.hidden; });
 
-	for (var tableName in definitions) {
+	// For each nonhidden table, push each nonhidden column
+	// and nonhidden join to schema array. 
+
+	for (var tableName in publicDefinitions) {
 		var tableDef = definitions[tableName];
+		var tableSchema = {
+			name: tableDef.name,
+			alias: tableDef.property,
+			columns: _.omit(tableDef.columns, function(col)  { return col.hidden }),
+			joins:   _.omit(tableDef.columns, function(join) { return join.hidden })
+		};
+		this.schema.push(tableSchema);
 	}
-
-
-	// // Populate "schema" with tables from this.definitions.
-	// for (tableName in this.definitions) {
-	// 	var tableDef = this.definitions[tableName];
-
-
-
-	// 	// Add array of tables that may be joined on table.
-	// 	var joins = {};
-	// 	for (var join in tableDef.joins) {
-	// 		var joinDef  = tableDef.joins[join];
-	// 		var joinName = joinDef.as || definitions[join].as;
-	// 		var joinSpec = { id: join, name: joinName };
-
-	// 		// Conditionally add join to list of joins.
-	// 		if(!joinDef.hidden) { table.joins.push(joinSpec); }
-	// 	}
-
-	// 	// Conditionally add table to schema.
-	// 	if (!tableDef.hidden) { this.schema.push(table); }
-	// }
 };
 
 

@@ -1,3 +1,4 @@
+
 var mocha   = require('mocha')
 ,   expect  = require('chai').expect
 ,   _       = require('underscore')
@@ -6,17 +7,17 @@ var mocha   = require('mocha')
 describe.only('Define', function() {
 
 
-  describe('Hidden tables and columns', function() {
+  describe('Hidden', function() {
 
-    var definitions = { user_public_info: { }, user_private_info: { hidden: true } };
+    var definitions = { user_public_info: {}, user_private_info: { hidden: true } };
     var qb = new Qb(definitions);
 
-    it('Hidden definitions are not included in qb.schema.', function() {
-      expect(_.findWhere(qb.schema, { id: 'user_public_info' })).to.exist;
-      expect(_.findWhere(qb.schema, { id: 'user_private_info'})).to.not.exist;
+    it('definitions are not included in qb.schema.', function() {
+      expect(_.findWhere(qb.schema, { name: 'user_public_info' })).to.exist;
+      expect(_.findWhere(qb.schema, { name: 'user_private_info'})).to.not.exist;
     });
 
-    it('Hidden definitions are included in qb.models.', function() {
+    it('definitions are included in qb.models.', function() {
       expect(qb.models.user_public_info).to.exist;
       expect(qb.models.user_private_info).to.exist;
     });
@@ -27,8 +28,8 @@ describe.only('Define', function() {
   describe('Define columns', function() {
 
     var expected = { 
-      id:  { name: "id",  property: "id" }, 
-      uid: { name: "uid", property: "uid" } 
+      id:  { name: "id",  property: undefined }, 
+      uid: { name: "uid", property: undefined } 
     };
 
     it('as an array of strings', function() {
@@ -51,11 +52,12 @@ describe.only('Define', function() {
 
   });
 
+
   describe('Define columns with alias', function() {
 
     var expected = {
-      ID: { name: "id", property: "ID" },
-      UID: { name: "uid", property: "UID" }
+      id: { name: "id", property: "ID" },
+      uid: { name: "uid", property: "UID" }
     };
 
     it('as an array of objects', function() {
@@ -78,24 +80,55 @@ describe.only('Define', function() {
 
   });
 
+
+  describe('Define joins', function() {
+
+    var expected = { 
+      posts: { name: 'posts', alias: undefined, source_key: 'id', target_key: 'uid' } 
+    };
+
+    it('as an array of objects', function() {
+      var def = { users: { joins: [{ name: 'posts', target_key: 'uid' }] } };
+      var qb = new Qb(def);
+      expect(qb.definitions.users.joins).to.eql(expected);
+    });
+
+    it('as a nested object', function() {
+      var def = { users: { joins: { posts: { target_key: 'uid' }} } };
+      var qb = new Qb(def);
+      expect(qb.definitions.users.joins).to.eql(expected);
+    });
+
+  });
+
+
+  describe('Define joins with alias', function() {
+
+    var expected = { 
+      posts: { name: 'posts', alias: 'Postings', source_key: 'id', target_key: 'uid' } 
+    };
+
+    it('as an array of objects', function() {
+      var def = { users: { joins: [{ name: 'posts', target_key: 'uid', alias: 'Postings' }] } };
+      var qb = new Qb(def);
+      expect(qb.definitions.users.joins).to.eql(expected);
+    });
+
+    it('as a nested object', function() {
+      var def = { users: { joins: { posts: { target_key: 'uid', alias: 'Postings' }} } };
+      var qb = new Qb(def);
+      expect(qb.definitions.users.joins).to.eql(expected);
+    });
+
+  });
+
+
   describe('Primary key', function() {
 
     it('can be set from table definition', function() {
-      var def = { users: { primary_key: 'ID', columns: { id: 'ID' } }};
+      var def = { users: { primary_key: 'name', columns: ['name'] }};
       var qb = new Qb(def);
-      expect(qb.definitions.users.primary_key).to.eql('ID');
-    });
-
-    it('can be set from array column definition', function() {
-      var def = { users: { columns: [{ name: 'id', property: 'ID', primary_key: true } ]} };
-      var qb = new Qb(def);
-      expect(qb.definitions.users.primary_key).to.eql('ID');
-    });
-
-    it('can be set from nested object column definition', function() {
-      var def = { users: { columns: { id: { name: 'id', property: 'ID', primary_key: true } } } };
-      var qb = new Qb(def);
-      expect(qb.definitions.users.primary_key).to.eql('ID');
+      expect(qb.definitions.users.primary_key).to.equal('name');
     });
 
   });
