@@ -68,6 +68,7 @@ Qb.prototype.normalize = function(definitions) {
 		var joins    = {};
 
 		tableDef.name = tableName;
+		tableDef.as   = tableDef.as;
 
 		// Columns may be defined as an object of strings/objects 
 		// or as an array of strings/objects. These if/else blocks 
@@ -197,48 +198,51 @@ Qb.prototype.query = function(spec) {
 	// group.call(this, query, spec);
 
 	this.lastQuery = query.toQuery();
-	var result    = this.lastQuery.text;
-	var formatted = formatSQL(result);
+	this.lastQuery.formatted = formatSQL(this.lastQuery.string);
 
 	console.log('\n');
-	console.log(formatted);
+	console.log(this.lastQuery.formatted);
 
-	return formatted;
+	return this.lastQuery;
 };
 
 
 
-// Default values and basic validation.
-function querySetup(spec, joined, alias) {
+// QuerySetup performs the same role as "normalize" does
+// above. Format query spec as a nested object, filter
+// keys to whitelist, and fill in default values.
+
+function querySetup(spec) {
 	var that = this;
 
 	if (!spec) { throw Error('"Query" called without parameters.'); }
 
 	// Allow user to use some alternate keywords in query spec.
-	spec.selects = spec.selects || spec.select || spec.fields   || [];
-	spec.joins   = spec.joins   || spec.join   || spec.include  || [];
-	spec.wheres  = spec.wheres  || spec.where  || spec.filters  || [];
-	spec.groups  = spec.groups  || spec.group  || spec.groupBy  || [];
+	var selects = spec.selects = spec.selects || spec.select || spec.fields   || [];
+	var joins   = spec.joins   = spec.joins   || spec.join   || spec.include  || [];
+	var wheres  = spec.wheres  = spec.wheres  || spec.where  || spec.filters  || [];
+	var groups  = spec.groups  = spec.groups  || spec.group  || spec.groupBy  || [];
 
 	// Prepend spec.from to the joins array if exists.
 	if (spec.from) { spec.joins.unshift({ table: spec.from }); }
 
-	// For each array, convert to object if given as
-	// string and whitelist keys.
-
-	spec.selects = spec.selects.map(function(el) {
+	// Let joins and selects be given as a single string.
+	if (_.isString(selects)) { spec.selects = selects = [selects]; }
+	if (_.isString(joins)) { spec.joins = joins = [joins]; }
+	
+	selects = selects.map(function(el) {
 		if (typeof el === 'string') { return { field: el }; }
 		return _.pick(el, 'functions', 'field', 'joinId'); 
 	});
 
-	spec.joins = spec.joins.map(function(el) {
+	joins = joins.map(function(el) {
 		if (typeof el === 'string') { return { table: el }; }
 		return _.pick(el, 'id', 'table', 'joinId'); 
 	});
 
 	// Query requires a "from" and "select" at minimum.
-	if (!spec.joins.length > 0)   { throw Error('No tables listed in FROM clause.'); }
-	if (!spec.selects.length > 0) { throw Error('No fields listed in SELECT clause.'); }
+	if (!joins.length > 0)   { throw Error('No tables listed in FROM clause.'); }
+	if (!selects.length > 0) { throw Error('No fields listed in SELECT clause.'); }
 }
 
 

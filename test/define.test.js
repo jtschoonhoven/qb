@@ -4,7 +4,7 @@ var mocha   = require('mocha')
 ,   _       = require('underscore')
 ,   Qb      = require('../qb');
 
-describe.only('Define', function() {
+describe('Define', function() {
 
 
   describe('Hidden', function() {
@@ -34,6 +34,25 @@ describe.only('Define', function() {
       expect(qb.schema.length).to.equal(1);
       expect(_.findWhere(qb.schema[0].joins, { name: 'user_private_info' })).to.not.exist;
       expect(_.findWhere(qb.schema[0].joins, { name: 'user_public_info' })).to.exist;
+    });
+
+  });
+
+
+  describe('Define tables', function() {
+
+    it('as a nested object.', function() {
+      var def = { users: {} };
+      var qb = new Qb(def);
+      var expected = { users: { name: 'users', as: undefined, columns: {}, joins: {} } };
+      expect(qb.definitions).to.eql(expected);
+    });
+
+    it('with alias', function() {
+      var def = { users: { as: 'Users' } };
+      var qb = new Qb(def);
+      var expected = { users: { name: 'users', as: 'Users', columns: {}, joins: {} } };
+      expect(qb.definitions).to.eql(expected);
     });
 
   });
