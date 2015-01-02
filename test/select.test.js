@@ -2,7 +2,7 @@ var mocha       = require('mocha')
 ,   expect      = require('chai').expect
 ,   Qb          = require('../qb');
 
-describe.only('select.test.js', function() {
+describe('select.test.js', function() {
 
 
   describe('Select a single field', function() {
@@ -59,7 +59,7 @@ describe.only('select.test.js', function() {
   });
 
 
-  describe('Select using a registered SQL function', function() {
+  describe('Select using a custom (registered) SQL function', function() {
 
     var def  = { users: { columns: ['id'] } };
     var spec = { select: [{ name: 'id', functions: 'MY_FUNCTION' }], from: 'users' };
@@ -92,22 +92,28 @@ describe.only('select.test.js', function() {
   describe('Select using an unregistered SQL function', function() {
 
     var def = { users: { columns: ['id'] } };
-    var qb  = new Qb(def);
-    // console.log(qb)
 
     it('given no extra arguments', function() {
-      var spec  = { select: [{ name: 'id', functions: 'MY_FUNCTION' }], from: 'users' };
-      var sql = 'SELECT MY_FUNCTION("users"."id") FROM "users"';
+      var qb    = new Qb(def);
+      var spec  = { select: [{ name: 'id', functions: ['MY_FUNCTION'] }], from: 'users' };
+      var sql   = 'SELECT MY_FUNCTION("users"."id") FROM "users"';
       var query = qb.query(spec);
-      expect(qb.functions.MY_FUNCTION).to.not.exist;
       expect(query.string).to.equal(sql);
     });
 
     it('given an extra argument on left', function() {
-      var spec  = { select: [{ name: 'id', functions: [] }], from: 'users' };
-      var sql = 'SELECT MY_FUNCTION(\'ARG\', "users"."id") FROM "users"';
+      var qb    = new Qb(def);
+      var spec  = { select: [{ name: 'id', functions: [{ name: 'MY_FUNCTION', args: ['ARG'] }] }], from: 'users' };
+      var sql   = 'SELECT MY_FUNCTION(\'ARG\', "users"."id") FROM "users"';
       var query = qb.query(spec);
-      expect(qb.functions.MY_FUNCTION).to.not.exist;
+      expect(query.string).to.equal(sql);
+    });
+
+    it('given an extra argument on right', function() {
+      var qb    = new Qb(def);
+      var spec  = { select: [{ name: 'id', functions: [{ name: 'MY_FUNCTION', args: [null, 'ARG'] }] }], from: 'users' };
+      var sql   = 'SELECT MY_FUNCTION("users"."id", \'ARG\') FROM "users"';
+      var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
 

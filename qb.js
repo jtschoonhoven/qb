@@ -43,7 +43,7 @@ Qb.prototype.registerFunction = function(name) {
 		func = _.partial.apply(this, args);
 	}
 
-	this.functions[name] = func;
+	return this.functions[name] = func;
 };
 
 
@@ -390,16 +390,26 @@ function select(query, spec) {
 		// Apply functions to selection in reverse order.
 		if (select.functions) {
 			select.functions.reverse().forEach(function(func) {
+
+				// Cast func and args if given as string.
+				if (_.isString(func))      { func = { name: func };   }
+				if (_.isString(func.args)) { func.args = [func.args]; }
+
 				func.args = func.args || [];
 				func.name = func.name.toUpperCase();
 
-				// Lookup from qb.functions if exists, else create new.
+				// Lookup from qb.functions if exists, else register new.
 				var funcDef = that.functions[func.name];
-				if (!funcDef) { funcDef = sql.functionCallCreator(func.name); }
+				if (!funcDef) { funcDef = that.registerFunction(func.name); }
 
-				// Apply to selection.
-				func.args.unshift(selection);
-				selection = funcDef.apply(this, func.args);
+				// Prefill arguments to funcDef if exists.
+				if (!_.isEmpty(func.args)) {
+					var args = func.args.map(function(arg) { return !arg && arg !== 0 ? _ : arg; });
+					args     = [funcDef].concat(args);
+					funcDef  = _.partial.apply(this, args);
+				}
+
+				selection = funcDef(selection);
 			});
 
 		}
