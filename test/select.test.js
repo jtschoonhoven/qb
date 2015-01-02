@@ -73,14 +73,14 @@ describe('select.test.js', function() {
     });
 
     it('with argument prefilled on left', function() {
-      qb.registerFunction('MY_FUNCTION', 'ARG1');
+      qb.registerFunction('MY_FUNCTION', 'MY_FUNCTION', 'ARG1');
       var sql = 'SELECT MY_FUNCTION(\'ARG1\', "users"."id") FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
 
     it('with argument prefilled on right', function() {
-      qb.registerFunction('MY_FUNCTION', null, 'ARG1');
+      qb.registerFunction('MY_FUNCTION', 'MY_FUNCTION', null, 'ARG1');
       var sql = 'SELECT MY_FUNCTION("users"."id", \'ARG1\') FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);

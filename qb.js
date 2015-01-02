@@ -30,12 +30,13 @@ function Qb(definitions, dialect) {
 // Extend SQL's functionCallCreator so that SQL functions may
 // be defined with arguments prefilled. This function is used
 // internally to register functions and is also exposed to
-// the user so that they can register their own.
+// the user so that they can register their own. "ID" is the
+// reference key for the function, "name" is how it appears in
+// the SQL statement.
 
-Qb.prototype.registerFunction = function(name) {
-	name     = name.toUpperCase();
-	var func = sql.functionCallCreator(name);
-	var args = _.toArray(arguments).splice(1);
+Qb.prototype.registerFunction = function(id, name) {
+	var func = sql.functionCallCreator(name || id);
+	var args = _.toArray(arguments).splice(2);
 
 	if (!_.isEmpty(args)) {
 		args = args.map(function(arg) { return !arg && arg !== 0 ? _ : arg; });
@@ -43,7 +44,7 @@ Qb.prototype.registerFunction = function(name) {
 		func = _.partial.apply(this, args);
 	}
 
-	return this.functions[name] = func;
+	return this.functions[id || name] = func;
 };
 
 
