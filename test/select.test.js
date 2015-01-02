@@ -91,10 +91,12 @@ describe('select.test.js', function() {
 
   describe('Select using an unregistered SQL function', function() {
 
+    afterEach(function() { delete qb.functions.MY_FUNCTION; });
+
     var def = { users: { columns: ['id'] } };
+    var qb  = new Qb(def);
 
     it('given no extra arguments', function() {
-      var qb    = new Qb(def);
       var spec  = { select: [{ name: 'id', functions: ['MY_FUNCTION'] }], from: 'users' };
       var sql   = 'SELECT MY_FUNCTION("users"."id") FROM "users"';
       var query = qb.query(spec);
@@ -102,7 +104,6 @@ describe('select.test.js', function() {
     });
 
     it('given an extra argument on left', function() {
-      var qb    = new Qb(def);
       var spec  = { select: [{ name: 'id', functions: [{ name: 'MY_FUNCTION', args: ['ARG'] }] }], from: 'users' };
       var sql   = 'SELECT MY_FUNCTION(\'ARG\', "users"."id") FROM "users"';
       var query = qb.query(spec);
@@ -110,7 +111,6 @@ describe('select.test.js', function() {
     });
 
     it('given an extra argument on right', function() {
-      var qb    = new Qb(def);
       var spec  = { select: [{ name: 'id', functions: [{ name: 'MY_FUNCTION', args: [null, 'ARG'] }] }], from: 'users' };
       var sql   = 'SELECT MY_FUNCTION("users"."id", \'ARG\') FROM "users"';
       var query = qb.query(spec);
@@ -132,8 +132,15 @@ describe('select.test.js', function() {
       expect(query.string).to.equal(sql);
     });
 
-    it('given as an array of objects.', function() {
-      var spec  = { select: [{ name: 'id', functions: ['count', 'distinct'] }], from: 'users' };
+    it('given as an array of objects', function() {
+      var spec  = { select: [{ name: 'id', functions: [{ name: 'count' }, { name: 'distinct' }] }], from: 'users' };
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+    it('by defining a custom function in qb.functions', function() {
+      qb.functions.COUNT_DISTINCT = function(field) { return field.count().distinct().as(); };
+      var spec  = { select: [{ name: 'id', functions: 'COUNT_DISTINCT' }], from: 'users' };
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });

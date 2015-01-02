@@ -39,7 +39,7 @@ Qb.prototype.registerFunction = function(name) {
 
 	if (!_.isEmpty(args)) {
 		args = args.map(function(arg) { return !arg && arg !== 0 ? _ : arg; });
-		args.unshift(func);
+		args = [func].concat(args);
 		func = _.partial.apply(this, args);
 	}
 
@@ -148,7 +148,6 @@ Qb.prototype.normalize = function(definitions) {
 		}
 
 		tableDef.joins = joins;
-
 		this.definitions[tableName] = tableDef;
 	}
 
@@ -386,35 +385,31 @@ function select(query, spec) {
 
 		var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
 		var selection = join.model[select.name];
-
-		// Apply functions to selection in reverse order.
-		if (select.functions) {
-			select.functions.reverse().forEach(function(func) {
-
-				// Cast func and args if given as string.
-				if (_.isString(func))      { func = { name: func };   }
-				if (_.isString(func.args)) { func.args = [func.args]; }
-
-				func.args = func.args || [];
-				func.name = func.name.toUpperCase();
-
-				// Lookup from qb.functions if exists, else register new.
-				var funcDef = that.functions[func.name];
-				if (!funcDef) { funcDef = that.registerFunction(func.name); }
-
-				// Prefill arguments to funcDef if exists.
-				if (!_.isEmpty(func.args)) {
-					var args = func.args.map(function(arg) { return !arg && arg !== 0 ? _ : arg; });
-					args     = [funcDef].concat(args);
-					funcDef  = _.partial.apply(this, args);
-				}
-
-				selection = funcDef(selection);
-			});
-
-		}
-
 		if (!selection) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
+
+		select.functions = select.functions || [];
+		select.functions.reverse().forEach(function(func) {
+
+			// Cast func and args if given as string.
+			if (_.isString(func))      { func = { name: func };   }
+			if (_.isString(func.args)) { func.args = [func.args]; }
+
+			func.args = func.args || [];
+			func.name = func.name.toUpperCase();
+
+			// Lookup from qb.functions if exists, else register new.
+			var funcDef = that.functions[func.name];
+			if (!funcDef) { funcDef = that.registerFunction(func.name); }
+
+			// Prefill arguments to funcDef if exists.
+			if (!_.isEmpty(func.args)) {
+				var args = func.args.map(function(arg) { return !arg && arg !== 0 ? _ : arg; });
+				args     = [funcDef].concat(args);
+				funcDef  = _.partial.apply(this, args);
+			}
+
+			selection = funcDef(selection);
+		});
 
 		query.select(selection);
 	});
