@@ -164,10 +164,10 @@ Qb.prototype.buildSchema = function(definitions) {
 		// Convert joins and columns to arrays. Omit columns
 		// marked "hidden" or joins onto hidden tables.
 
-		var colArray = _.toArray(tableDef.columns);
+		var colArray   = _.toArray(tableDef.columns);
 		var publicCols = _.reject(colArray, { hidden: true });
 
-		var joinArray = _.toArray(tableDef.joins);
+		var joinArray   = _.toArray(tableDef.joins);
 		var publicJoins = joinArray.filter(function(join) {
 			return !definitions[join.name].hidden;
 		});
@@ -178,6 +178,7 @@ Qb.prototype.buildSchema = function(definitions) {
 			columns: publicCols,
 			joins: publicJoins
 		};
+		
 		this.schema.push(tableSchema);
 	}
 };

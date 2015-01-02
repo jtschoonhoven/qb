@@ -3,7 +3,7 @@ var mocha       = require('mocha')
 ,   expect      = require('chai').expect
 ,   Qb          = require('../qb');
 
-describe.only('join.test.js', function() {
+describe('join.test.js', function() {
 
 
   describe('Define a single FROM clause', function() {
