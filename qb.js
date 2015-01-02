@@ -189,7 +189,7 @@ Qb.prototype.query = function(spec) {
 	var that = this;
 
 	querySetup.call(this, spec);
-	var from  = spec.joins[0].table;
+	var from  = spec.joins[0].name;
 	var query = this.models[from].select([]);
 
 	join.call(this, query, spec);
@@ -197,11 +197,12 @@ Qb.prototype.query = function(spec) {
 	// where.call(this, query, spec);
 	// group.call(this, query, spec);
 
-	this.lastQuery = query.toQuery();
+	this.lastQuery           = query.toQuery();
+	this.lastQuery.string    = query.toString();
 	this.lastQuery.formatted = formatSQL(this.lastQuery.string);
 
-	console.log('\n');
-	console.log(this.lastQuery.formatted);
+	// console.log('\n');
+	// console.log(this.lastQuery.formatted);
 
 	return this.lastQuery;
 };
@@ -224,20 +225,20 @@ function querySetup(spec) {
 	var groups  = spec.groups  = spec.groups  || spec.group  || spec.groupBy  || [];
 
 	// Prepend spec.from to the joins array if exists.
-	if (spec.from) { spec.joins.unshift({ table: spec.from }); }
+	if (spec.from) { spec.joins.unshift({ name: spec.from }); }
 
 	// Let joins and selects be given as a single string.
-	if (_.isString(selects)) { spec.selects = selects = [selects]; }
-	if (_.isString(joins)) { spec.joins = joins = [joins]; }
-	
-	selects = selects.map(function(el) {
-		if (typeof el === 'string') { return { field: el }; }
-		return _.pick(el, 'functions', 'field', 'joinId'); 
+	if (_.isString(selects)) { selects = [{ name: selects }]; }
+	if (_.isString(joins))   { joins   = [{ name: joins }]; }
+
+	spec.selects = selects.map(function(el) {
+		if (_.isString(el)) { return { name: el }; }
+		return _.pick(el, 'functions', 'name', 'joinId');
 	});
 
-	joins = joins.map(function(el) {
-		if (typeof el === 'string') { return { table: el }; }
-		return _.pick(el, 'id', 'table', 'joinId'); 
+	spec.joins = joins.map(function(el) {
+		if (_.isString(el)) { return { name: el }; }
+		return _.pick(el, 'id', 'name', 'as', 'joinId'); 
 	});
 
 	// Query requires a "from" and "select" at minimum.
@@ -255,10 +256,12 @@ function join(query, spec) {
 	// the "joins" model. Keep track of each alias and number
 	// of times used in "names" array (avoids reusing alias).
 
-	var from  = spec.joins[0].table;
-	var alias = this.definitions[from].as;
-	var joins = this.models[from].as(alias);
-	var names = [{ alias: alias, used: 1 }];
+	var from  = spec.joins[0];
+	var name  = from.name;
+	var def   = this.definitions[name];
+	var alias = from.as || def.as;
+	var joins = this.models[name].as(alias);
+	var names = [{ alias: alias || name, used: 1 }];
 
 	// Save model of FROM table to spec.joins.
 	spec.joins[0].model = joins;
@@ -283,13 +286,13 @@ function joinOnce(spec, join, joins, names) {
 	// always defaults to the first join in spec.joins (the FROM table). 
 
 	var sourceJoin = _.findWhere(spec.joins, { id: join.joinId }) || spec.joins[0];
-	var sourceDef  = this.definitions[sourceJoin.table];
+	var sourceDef  = this.definitions[sourceJoin.name];
 
 	// Intermediate tables are joined through implicitly according
 	// to the "via" attribute in definitions. Intermediates sit
 	// in between a join table and its defined source.
 
-	var intermediate = sourceDef.joins[join.table].via;
+	var intermediate = sourceDef.joins[join.name].via;
 
 	if (intermediate) {
 		var viaId = _.uniqueId('_via_');
@@ -316,15 +319,15 @@ function joinOnce(spec, join, joins, names) {
 	// The "join" table is the table being joined. Similar to the
 	// source attributes above, we need the table name and defs.
 
-	var joinTable = join.table;
-	var joinDef   = this.definitions[joinTable];
+	var joinName = join.name;
+	var joinDef   = this.definitions[joinName];
 
 	// But before naming the new model, we need to grab its alias
 	// and check whether it already exists in "names", the array
 	// of aliases that have already been used.
 
-	var joinAlias = joinDef.as || joinTable;
-	var named     = _.findWhere(names, { alias: joinAlias });
+	var joinAlias = join.as || joinDef.as;
+	var named = _.findWhere(names, { alias: joinAlias || joinName });
 
 	// If joinAlias has already been used, make a new alias by
 	// appending an index to the old alias e.g. users_2.
@@ -333,14 +336,14 @@ function joinOnce(spec, join, joins, names) {
 	if (named) { 
 		joinAlias = named.alias + '_' + (++named.used);
 	} else {
-		names.push({ alias: joinAlias, used: 1 });
+		names.push({ alias: joinAlias || joinName, used: 1 });
 	}
 
-	join.model = this.models[joinTable].as(joinAlias);
+	join.model = this.models[joinName].as(joinAlias);
 
 	// Get keys for join. Default to primary key if source/target keys are not set.
-	var sourceKey = sourceDef.joins[joinTable].source_key || sourceDef.primary_key;
-	var joinKey   = sourceDef.joins[joinTable].target_key || joinDef.primary_key;
+	var sourceKey = sourceDef.joins[joinName].source_key || sourceDef.primary_key;
+	var joinKey   = sourceDef.joins[joinName].target_key || joinDef.primary_key;
 
 	// Get the alias ("AS") used for join/source key if exists, or just use the key as is.
 	sourceKey = _.findWhere(sourceDef.columns, { name: sourceKey }).property || sourceKey;
@@ -361,21 +364,10 @@ function select(query, spec) {
 		// If no joinId, assume spec.joins[0] (the FROM table).
 
 		var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
-		var selection = join.model[select.field];
+		var selection = join.model[select.name];
 		var distinct = sql.functionCallCreator('DISTINCT');
 
-		// If select.field doesn't exist in join.model, the user
-		// is probably (incorrectly) referring to a field by its
-		// actual name rather than its alias. Let's handle that.
-		// NOTE: could be source of errors downroad. Revisit.
-
-		if (!selection) {
-			var columns = that.definitions[join.table].columns;
-			var column  = _.findWhere(columns, { name: select.field });
-			selection   = join.model[column.property];
-		}
-
-		if (!selection) { throw Error('Column "' + select.field + '" not defined in "' + join.table + '".'); }
+		if (!selection) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
 
 		query.select(selection);
 	});

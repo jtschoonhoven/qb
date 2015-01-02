@@ -2,6 +2,6 @@ var mocha       = require('mocha')
 ,   expect      = require('chai').expect
 ,   Qb          = require('../qb');
 
-describe('Register Functions', function() {
+describe('register-functions.test.js', function() {
 
 });

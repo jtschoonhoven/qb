@@ -4,7 +4,7 @@ var mocha   = require('mocha')
 ,   _       = require('underscore')
 ,   Qb      = require('../qb');
 
-describe('Define', function() {
+describe('define.test.js', function() {
 
 
   describe('Hidden', function() {
