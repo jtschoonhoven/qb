@@ -106,7 +106,7 @@ describe('define.test.js', function() {
     });
 
     it('as a nested object', function() {
-      var def = { users: { columns: { a: { name: "id", property: "ID" }, b: { name: "uid", property: "UID" } } }};
+      var def = { users: { columns: { id: { property: "ID" }, uid: { property: "UID" } } }};
       var qb = new Qb(def);
       expect(qb.definitions.users.columns).to.eql(expected);
     });

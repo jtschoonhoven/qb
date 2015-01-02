@@ -14,12 +14,13 @@ var _   = require('underscore');
 // The models object contains models defined by the sql package.
 // The schema object is a map of the db structure.
 // The definitions object is a copy of user-defined definitions.
+// Functions are cloned from node-sql, avoids writing to prototype.
 
 function Qb(definitions, dialect) {
 	this.models = {};
 	this.schema = [];
 	this.definitions = {};
-	this.functions = sql.functions;
+	this.functions = _.clone(sql.functions);
 
 	if (dialect) { sql.setDialect(dialect); }
 	if (definitions) { this.define(definitions); }
@@ -36,7 +37,6 @@ Qb.prototype.registerFunction = function(name) {
 	var func = sql.functionCallCreator(name);
 	var args = _.toArray(arguments).splice(1);
 
-	// If falsey value is passed as an argument, leave open for input.
 	if (!_.isEmpty(args)) {
 		args = args.map(function(arg) { return !arg && arg !== 0 ? _ : arg; });
 		args.unshift(func);
@@ -250,6 +250,7 @@ function querySetup(spec) {
 		var whitelist = ['functions', 'args', 'name', 'joinId'];
 		if (_.isString(el)) { return { name: el }; }
 		if (_.isString(el.functions)) { el.functions = [el.functions]; }
+		if (_.isString(el.args)) { el.args = [el.args] }
 		return _.pick(el, whitelist);
 	});
 
@@ -385,17 +386,22 @@ function select(query, spec) {
 
 		var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
 		var selection = join.model[select.name];
-		var distinct = sql.functionCallCreator('DISTINCT');
 
-		// Apply functions to selection, iterating in reverse.
-		var functions = select.functions;
-		if (_.isArray(functions)) {
-			functions.reverse().forEach(function(func) {
-				if (_.isString(func)) { func = { name: func }; }
-				func.name    = func.name.toUpperCase();
-				var funcDef  = that.functions[func.name];
-				if (funcDef) { selection = funcDef(selection); }
+		// Apply functions to selection in reverse order.
+		if (select.functions) {
+			select.functions.reverse().forEach(function(func) {
+				func.args = func.args || [];
+				func.name = func.name.toUpperCase();
+
+				// Lookup from qb.functions if exists, else create new.
+				var funcDef = that.functions[func.name];
+				if (!funcDef) { funcDef = sql.functionCallCreator(func.name); }
+
+				// Apply to selection.
+				func.args.unshift(selection);
+				selection = funcDef.apply(this, func.args);
 			});
+
 		}
 
 		if (!selection) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
