@@ -26,8 +26,24 @@ function Qb(definitions, dialect) {
 }
 
 
+// Extend SQL's functionCallCreator so that SQL functions may
+// be defined with arguments prefilled. This function is used
+// internally to register functions and is also exposed to
+// the user so that they can register their own.
 
-Qb.prototype.registerFunction = function(func) {
+Qb.prototype.registerFunction = function(name) {
+	name     = name.toUpperCase();
+	var func = sql.functionCallCreator(name);
+	var args = _.toArray(arguments).splice(1);
+
+	// If falsey value is passed as an argument, leave open for input.
+	if (!_.isEmpty(args)) {
+		args = args.map(function(arg) { return !arg && arg !== 0 ? _ : arg; });
+		args.unshift(func);
+		func = _.partial.apply(this, args);
+	}
+
+	this.functions[name] = func;
 };
 
 
@@ -45,7 +61,7 @@ Qb.prototype.define = function(definitions) {
 
 		// Deep copy & modify columns for use with sql.define.
 		var sqlColumns = _.toArray(tableDef.columns).map(function(col) { 
-			return { name: col.name, property: col.property }
+			return { name: col.name, property: col.property };
 		});
 
 		// Register the model with sql.define.
@@ -77,7 +93,7 @@ Qb.prototype.normalize = function(definitions) {
 		if (_.isArray(tableDef.columns)) {
 			tableDef.columns.forEach(function(col) {
 
-				if (_.isString(col)) { 
+				if (_.isString(col)) {
 					columns[col] = { name: col, property: undefined, hidden: undefined }; 
 				} 
 
@@ -97,9 +113,8 @@ Qb.prototype.normalize = function(definitions) {
 				}
 
 				else if (_.isObject(col)) {
-					var name = col.name || colName;
-					if (col.primary_key) { tableDef.primary_key = name; }
-					columns[name] = { name: name, property: col.property, hidden: col.hidden };
+					if (col.primary_key) { tableDef.primary_key = colName; }
+					columns[colName] = { name: colName, property: col.property, hidden: col.hidden };
 				}
 			}
 		}
@@ -121,15 +136,14 @@ Qb.prototype.normalize = function(definitions) {
 		else if (_.isObject(tableDef.joins)) {
 			for (var joinName in tableDef.joins) {
 				var join = tableDef.joins[joinName];
-				var name = join.name || joinName;
 
-				if (!definitions[name]) { throw Error('Table ' + tableName + ' joined on undefined table ' + name + '.'); }
+				if (!definitions[joinName]) { throw Error('Table ' + tableName + ' joined on undefined table ' + joinName + '.'); }
 
 				// Source/target keys default to primary_key if exists, else "id".
 				var sourceKey = join.source_key || tableDef.primary_key || 'id';
-				var targetKey = join.target_key || definitions[name].primary_key || 'id';
+				var targetKey = join.target_key || definitions[joinName].primary_key || 'id';
 
-				joins[name] = { name: name, alias: join.alias, source_key: sourceKey, target_key: targetKey };
+				joins[joinName] = { name: joinName, alias: join.alias, source_key: sourceKey, target_key: targetKey };
 			}
 		}
 
@@ -233,18 +247,23 @@ function querySetup(spec) {
 	if (_.isString(joins))   { joins   = [{ name: joins }]; }
 
 	spec.selects = selects.map(function(el) {
+		var whitelist = ['functions', 'args', 'name', 'joinId'];
 		if (_.isString(el)) { return { name: el }; }
-		return _.pick(el, 'functions', 'name', 'joinId');
+		if (_.isString(el.functions)) { el.functions = [el.functions]; }
+		return _.pick(el, whitelist);
 	});
 
 	spec.joins = joins.map(function(el) {
+		var whitelist = ['id', 'name', 'as', 'joinId'];
 		if (_.isString(el)) { return { name: el }; }
-		return _.pick(el, 'id', 'name', 'as', 'joinId'); 
+		return _.pick(el, whitelist); 
 	});
 
-	// Query requires a "from" and "select" at minimum.
-	if (!joins.length > 0)   { throw Error('No tables listed in FROM clause.'); }
-	if (!selects.length > 0) { throw Error('No fields listed in SELECT clause.'); }
+	// Remove any nonwhitelisted keys from spec.
+	var whitelist = ['selects', 'joins', 'wheres', 'groups'];
+	Object.keys(spec).forEach(function(key) {
+		if (!_.contains(whitelist, key)) { delete spec[key] }
+	});
 }
 
 
@@ -271,8 +290,8 @@ function join(query, spec) {
 	// first element in spec.joins (which was joined above).
 
 	for (var i=1; i<spec.joins.length; i++) {
-		var join = spec.joins[i];
-		joins = joinOnce.call(that, spec, join, joins, names);
+		var thisJoin = spec.joins[i];
+		joins = joinOnce.call(that, spec, thisJoin, joins, names);
 	}
 
 	query.from(joins);
@@ -367,6 +386,17 @@ function select(query, spec) {
 		var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
 		var selection = join.model[select.name];
 		var distinct = sql.functionCallCreator('DISTINCT');
+
+		// Apply functions to selection, iterating in reverse.
+		var functions = select.functions;
+		if (_.isArray(functions)) {
+			functions.reverse().forEach(function(func) {
+				if (_.isString(func)) { func = { name: func }; }
+				func.name    = func.name.toUpperCase();
+				var funcDef  = that.functions[func.name];
+				if (funcDef) { selection = funcDef(selection); }
+			});
+		}
 
 		if (!selection) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
 

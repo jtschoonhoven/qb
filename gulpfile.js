@@ -12,14 +12,6 @@ var Qb          = require('./qb')
 ,   definitions = require('./example-definitions');
 
 
-// Run test and lint.
-gulp.task('test', ['lint'], function() {
-  gulp.src('./test.js', { read: false })
-    .pipe(mocha({ reporter: 'spec' }))
-    .on('error', function(err) { return gutil.log(err.stack || err.message); });
-});
-
-
 // Lint.
 gulp.task('lint', function() {
   return gulp.src(['qb.js'])
@@ -29,15 +21,16 @@ gulp.task('lint', function() {
 
 
 // Test.
-gulp.task('test', function () {
+gulp.task('test', ['lint'], function () {
   return gulp.src('test/*.test.js', { read: false })
-    .pipe(mocha({reporter: 'spec'}));
+    .pipe(mocha({reporter: 'spec'}))
+    .on('error', function(err) { return gutil.log(err.stack || err.message); });
 });
 
 
 // Retest on change.
-gulp.task('watch-test', ['test'], function() {
-  gulp.watch(['qb.js', 'test/*..js'], ['test']);
+gulp.task('watch-test', function() {
+  gulp.watch(['qb.js', 'test/*.test.js'], ['test']);
 });
 
 
@@ -48,7 +41,6 @@ gulp.task('start', function() {
 
 
 // Create cached schema for use without Node server.
-// Prepend "module.exports" so that Browserify can require it.
 gulp.task('cache', function() {
   var qb = new Qb(definitions);
   var schema = JSON.stringify(qb.schema, null, 1);
