@@ -117,7 +117,7 @@ describe('define.test.js', function() {
   describe('Define joins', function() {
 
     var expected = { 
-      posts: { name: 'posts', alias: undefined, source_key: 'id', target_key: 'uid' } 
+      posts: { name: 'posts', as: undefined, source_key: 'id', target_key: 'uid' } 
     };
 
     it('as an array of objects', function() {
@@ -138,17 +138,17 @@ describe('define.test.js', function() {
   describe('Define joins with alias', function() {
 
     var expected = { 
-      posts: { name: 'posts', alias: 'Postings', source_key: 'id', target_key: 'uid' } 
+      posts: { name: 'posts', as: 'Postings', source_key: 'id', target_key: 'uid' } 
     };
 
     it('as an array of objects', function() {
-      var def = { users: { joins: [{ name: 'posts', target_key: 'uid', alias: 'Postings' }] }, posts: {} };
+      var def = { users: { joins: [{ name: 'posts', target_key: 'uid', as: 'Postings' }] }, posts: {} };
       var qb = new Qb(def);
       expect(qb.definitions.users.joins).to.eql(expected);
     });
 
     it('as a nested object', function() {
-      var def = { users: { joins: { posts: { target_key: 'uid', alias: 'Postings' }} }, posts: {} };
+      var def = { users: { joins: { posts: { target_key: 'uid', as: 'Postings' }} }, posts: {} };
       var qb = new Qb(def);
       expect(qb.definitions.users.joins).to.eql(expected);
     });

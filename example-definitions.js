@@ -51,7 +51,7 @@ module.exports = {
   },
 
   posts_tags: {
-    hidden: true, // Exclude table from schema.
+    hidden: true, // Exclude intermediate table from schema.
     columns: [ "tag_id", "post_id" ], // Columns may be passed as array of strings.
     joins: {
       posts: { source_key: "post_id" },
@@ -68,7 +68,7 @@ module.exports = {
       { name: "tag", as: "Tag" }
     ],
     joins: {
-      posts_tags: { target_key: 'tag_id', hidden: true },
+      posts_tags: { target_key: 'tag_id' },
       users: { via: "posts_tags", as: "Related authors" },
       posts: { via: "posts_tags", as: "Related posts" }
     }
