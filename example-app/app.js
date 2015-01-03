@@ -40,6 +40,12 @@
 	};
 
 
+	var Table = Backbone.Model.extend({
+		idAttribute: 'name',
+		defaults: { name: undefined, as: undefined, columns: [], joins: [] }
+	});
+
+
 
 	// Collections
 	// ==================================================
@@ -50,6 +56,7 @@
 	// the db, primarily used to join tables.
 
 	var Tables = Backbone.Collection.extend({
+		model: Table,
 		url: '/api/schema'
 	});
 
@@ -408,7 +415,7 @@
 
 	window.tables = tables;
 
-	tables.on('sync', function()  	{ qb.render(); });
+	tables.on('sync', function()  { qb.render(); });
 	tables.on('error', function() { useCachedSchema(); });
 	tables.fetch();
 

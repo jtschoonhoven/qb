@@ -131,7 +131,7 @@ Qb.prototype.normalize = function(definitions) {
 				if (!definitions[join.name]) { throw Error('Table ' + tableName + ' joined on undefined table ' + join.name + '.'); }
 				var sourceKey = join.source_key || tableDef.primary_key || 'id';
 				var targetKey = join.target_key || definitions[join.name].primary_key || 'id';
-				joins[join.name] = { name: join.name, alias: join.alias, source_key: sourceKey, target_key: targetKey };
+				joins[join.name] = { name: join.name, as: join.as, source_key: sourceKey, target_key: targetKey };
 			});
 		}
 
@@ -145,7 +145,7 @@ Qb.prototype.normalize = function(definitions) {
 				var sourceKey = join.source_key || tableDef.primary_key || 'id';
 				var targetKey = join.target_key || definitions[joinName].primary_key || 'id';
 
-				joins[joinName] = { name: joinName, alias: join.alias, source_key: sourceKey, target_key: targetKey };
+				joins[joinName] = { name: joinName, as: join.as, source_key: sourceKey, target_key: targetKey };
 			}
 		}
 
@@ -387,10 +387,12 @@ function select(query, spec) {
 
 		var join  = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
 		var def   = that.definitions[join.name].columns[select.name];
+		if (!def) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
+
 		var alias = def.as;
 
 		var selection = join.model[def.name];
-		if (!selection) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
+		if (!selection) { throw Error('Column "' + def.name + '" not defined in "' + join.name + '".'); }
 
 		select.functions = select.functions || [];
 		select.functions.reverse().forEach(function(func) {

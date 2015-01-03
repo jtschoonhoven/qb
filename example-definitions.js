@@ -38,7 +38,7 @@ module.exports = {
   comments: {
     as: "Comments",
     columns: [
-      { name: "id", as: "Signature ID" },
+      { name: "id", as: "Comment ID" },
       { name: "post_id", as: "Post ID" },
       { name: "user_id", as: "User ID" },
       { name: "message", as: "Comment"},

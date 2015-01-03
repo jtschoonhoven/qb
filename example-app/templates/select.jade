@@ -20,10 +20,10 @@ div(class="form-group")
           - var joinAlias = join.as || join.name
           optgroup(label=joinAlias)
 
-            - var joinableCols = tables.findWhere({ name: join.name }).get('columns')
+            - var joinableCols = tables.get(join.name).get('columns')
             each column in joinableCols
               - var isSelected = model && model.get('joinId') === join.id && model.get('name') === column.name
-              - var colAlias = column.property || column.name;
+              - var colAlias = column.as || column.name;
               option(value=column.name data-join-id=join.id selected=isSelected) #{colAlias}
 
 
@@ -31,6 +31,7 @@ div(class="form-group")
     if (isRoot && model)
       a.add-btn(href="#" class="btn btn-default")
         span(class="glyphicon glyphicon-plus")
+        
     if !isRoot
       a.remove-btn(href="#" class="btn btn-default")
         span(class="glyphicon glyphicon-minus")
