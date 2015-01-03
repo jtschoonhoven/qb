@@ -4,15 +4,15 @@
   "columns": [
    {
     "name": "id",
-    "property": "User ID"
+    "as": "User ID"
    },
    {
     "name": "name",
-    "property": "Full name"
+    "as": "Full name"
    },
    {
     "name": "created_at",
-    "property": "Join date"
+    "as": "Join date"
    }
   ],
   "joins": [
@@ -33,19 +33,19 @@
   "columns": [
    {
     "name": "id",
-    "property": "Post ID"
+    "as": "Post ID"
    },
    {
     "name": "user_id",
-    "property": "Author"
+    "as": "Author"
    },
    {
     "name": "text",
-    "property": "Text"
+    "as": "Text"
    },
    {
     "name": "created_at",
-    "property": "Post Date"
+    "as": "Post Date"
    }
   ],
   "joins": [
@@ -70,19 +70,24 @@
   "name": "comments",
   "columns": [
    {
-    "name": "id"
+    "name": "id",
+    "as": "Signature ID"
    },
    {
-    "name": "post_id"
+    "name": "post_id",
+    "as": "Post ID"
    },
    {
-    "name": "user_id"
+    "name": "user_id",
+    "as": "User ID"
    },
    {
-    "name": "message"
+    "name": "message",
+    "as": "Comment"
    },
    {
-    "name": "created_at"
+    "name": "created_at",
+    "as": "Comment Date"
    }
   ],
   "joins": [
@@ -102,10 +107,12 @@
   "name": "tags",
   "columns": [
    {
-    "name": "id"
+    "name": "id",
+    "as": "Tag ID"
    },
    {
-    "name": "tag"
+    "name": "tag",
+    "as": "Tag"
    }
   ],
   "joins": [

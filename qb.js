@@ -188,10 +188,10 @@ Qb.prototype.buildSchema = function(definitions) {
 		});
 
 		var tableSchema = {
-			name: tableDef.name,
-			alias: tableDef.property,
-			columns: publicCols,
-			joins: publicJoins
+			name    : tableDef.name,
+			as      : tableDef.as,
+			columns : publicCols,
+			joins   : publicJoins
 		};
 		
 		this.schema.push(tableSchema);
