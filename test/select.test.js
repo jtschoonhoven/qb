@@ -18,13 +18,35 @@ describe('select.test.js', function() {
     });
 
     it('given as a string array', function() {
-      var spec = { select: ['id'], from: 'users' };
+      var spec = { selects: ['id'], from: 'users' };
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
 
     it('given as an object array', function() {
-      var spec = { select: [{ name: 'id' }], from: 'users' };
+      var spec = { selects: [{ name: 'id' }], from: 'users' };
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+  });
+
+
+  describe('Select a field with an alias', function() {
+
+    var def = { users: { columns: { id: 'ID' } } };
+    var qb  = new Qb(def);
+
+    it('defined in qb.definitions', function() {
+      var spec = { select: 'id', from: 'users' };
+      var sql  = 'SELECT "users"."id" AS "ID" FROM "users"';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+    it('in query spec', function() {
+      var sql  = 'SELECT "users"."id" AS "UID" FROM "users"';
+      var spec = { selects: [{ name: 'id', as: 'UID' }], from: 'users' };
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
@@ -141,6 +163,21 @@ describe('select.test.js', function() {
     it('by defining a custom function in qb.functions', function() {
       qb.functions.COUNT_DISTINCT = function(field) { return field.count().distinct().as(); };
       var spec  = { select: [{ name: 'id', functions: 'COUNT_DISTINCT' }], from: 'users' };
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+  });
+
+
+  describe.only('Select using sql function with alias', function() {
+
+    var def = { users: { columns: { id: 'ID' } } };
+    var qb  = new Qb(def);
+
+    it('defined in qb.definitions', function() {
+      var spec = { select: [{ name: 'id', functions: 'count' }], from: 'users' };
+      var sql  = 'SELECT COUNT("users"."id") AS "ID_COUNT" FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });

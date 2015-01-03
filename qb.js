@@ -247,7 +247,7 @@ function querySetup(spec) {
 	if (_.isString(joins))   { joins   = [{ name: joins }]; }
 
 	spec.selects = selects.map(function(el) {
-		var whitelist = ['functions', 'args', 'name', 'joinId'];
+		var whitelist = ['functions', 'args', 'name', 'joinId', 'as'];
 		if (_.isString(el)) { return { name: el }; }
 		if (_.isString(el.functions)) { el.functions = [el.functions]; }
 		if (_.isString(el.args)) { el.args = [el.args] }
@@ -412,10 +412,12 @@ function select(query, spec) {
 				funcDef  = _.partial.apply(this, args);
 			}
 
-			selection = funcDef(selection);
+			selection = funcDef(selection).as('ok');
 		});
 
-		query.select(selection);
+		// if (select.as) { query.select(selection.as(select.as)); }
+		// else { query.select(selection); }
+		query.select(selection)
 	});
 }
 
