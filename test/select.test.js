@@ -170,17 +170,19 @@ describe('select.test.js', function() {
   });
 
 
-  describe.only('Select using sql function with alias', function() {
+  describe('Select using sql function with alias', function() {
 
     var def = { users: { columns: { id: 'ID' } } };
     var qb  = new Qb(def);
 
     it('defined in qb.definitions', function() {
-      var spec = { select: [{ name: 'id', functions: 'count' }], from: 'users' };
-      var sql  = 'SELECT COUNT("users"."id") AS "ID_COUNT" FROM "users"';
+      var spec  = { select: [{ name: 'id', functions: 'count' }], from: 'users' };
+      var sql   = 'SELECT COUNT("users"."id") AS "ID_count" FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
+
+    it('for nested functions');
 
   });
 

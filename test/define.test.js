@@ -61,8 +61,8 @@ describe('define.test.js', function() {
   describe('Define columns', function() {
 
     var expected = { 
-      id:  { name: "id",  property: undefined, hidden: undefined }, 
-      uid: { name: "uid", property: undefined, hidden: undefined } 
+      id:  { name: "id",  as: undefined, hidden: undefined }, 
+      uid: { name: "uid", as: undefined, hidden: undefined } 
     };
 
     it('as an array of strings', function() {
@@ -89,12 +89,12 @@ describe('define.test.js', function() {
   describe('Define columns with alias', function() {
 
     var expected = {
-      id: { name: "id", property: "ID", hidden: undefined },
-      uid: { name: "uid", property: "UID", hidden: undefined }
+      id: { name: "id", as: "ID", hidden: undefined },
+      uid: { name: "uid", as: "UID", hidden: undefined }
     };
 
     it('as an array of objects', function() {
-      var def = { users: { columns: [{ name: 'id', property: "ID" }, { name: 'uid', property: "UID" }] } };
+      var def = { users: { columns: [{ name: 'id', as: "ID" }, { name: 'uid', as: "UID" }] } };
       var qb = new Qb(def);
       expect(qb.definitions.users.columns).to.eql(expected);
     });
@@ -106,7 +106,7 @@ describe('define.test.js', function() {
     });
 
     it('as a nested object', function() {
-      var def = { users: { columns: { id: { property: "ID" }, uid: { property: "UID" } } }};
+      var def = { users: { columns: { id: { as: "ID" }, uid: { as: "UID" } } }};
       var qb = new Qb(def);
       expect(qb.definitions.users.columns).to.eql(expected);
     });

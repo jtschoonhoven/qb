@@ -62,7 +62,7 @@ Qb.prototype.define = function(definitions) {
 
 		// Deep copy & modify columns for use with sql.define.
 		var sqlColumns = _.toArray(tableDef.columns).map(function(col) { 
-			return { name: col.name, property: col.property };
+			return { name: col.name };
 		});
 
 		// Register the model with sql.define.
@@ -95,12 +95,12 @@ Qb.prototype.normalize = function(definitions) {
 			tableDef.columns.forEach(function(col) {
 
 				if (_.isString(col)) {
-					columns[col] = { name: col, property: undefined, hidden: undefined }; 
+					columns[col] = { name: col, as: undefined, hidden: undefined }; 
 				} 
 
 				else if (_.isObject(col)) {
 					if (col.primary_key) { tableDef.primary_key = col.name; }
-					columns[col.name] =  { name: col.name, property: col.property, hidden: col.hidden };
+					columns[col.name] =  { name: col.name, as: col.as, hidden: col.hidden };
 				}
 			});
 		}	
@@ -110,12 +110,12 @@ Qb.prototype.normalize = function(definitions) {
 				var col = tableDef.columns[colName];
 
 				if (!col || _.isString(col)) {
-					columns[colName] = { name: colName, property: col || undefined, hidden: undefined };
+					columns[colName] = { name: colName, as: col || undefined, hidden: undefined };
 				}
 
 				else if (_.isObject(col)) {
 					if (col.primary_key) { tableDef.primary_key = colName; }
-					columns[colName] = { name: colName, property: col.property, hidden: col.hidden };
+					columns[colName] = { name: colName, as: col.as, hidden: col.hidden };
 				}
 			}
 		}
@@ -384,13 +384,13 @@ function select(query, spec) {
 		// Lookup the model to be selected from in spec.joins.
 		// If no joinId, assume spec.joins[0] (the FROM table).
 
-		var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
-		var def  = that.definitions[join.name].columns[select.name];
-		var name = def.property || def.name;
+		var join  = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
+		var def   = that.definitions[join.name].columns[select.name];
+		var alias = select.as || def.as;
 
-		if (!join.model[name]) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
+		var selection = join.model[def.name];
+		if (!selection) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
 
-		var selection;
 		select.functions = select.functions || [];
 		select.functions.reverse().forEach(function(func) {
 
@@ -398,8 +398,8 @@ function select(query, spec) {
 			if (_.isString(func))      { func = { name: func };   }
 			if (_.isString(func.args)) { func.args = [func.args]; }
 
-			func.args = func.args || [];
 			func.name = func.name.toUpperCase();
+			func.args = func.args || [];
 
 			// Lookup from qb.functions if exists, else register new.
 			var funcDef = that.functions[func.name];
@@ -412,12 +412,15 @@ function select(query, spec) {
 				funcDef  = _.partial.apply(this, args);
 			}
 
-			selection = funcDef(join.model[name]);
+			// Append a suffix to funcName.
+			var suffix = '_' + func.name.toLowerCase();
+			alias = alias ? (alias + suffix) : (select.name + suffix);
+
+			selection = funcDef(selection);
 		});
 
-		// if (select.as) { query.select(selection.as(select.as)); }
-		// else { query.select(selection); }
-		query.select(selection)
+		if (alias) { query.select(selection.as(alias)); }
+		else { query.select(selection); }
 	});
 }
 
