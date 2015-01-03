@@ -131,7 +131,7 @@ Qb.prototype.normalize = function(definitions) {
 				if (!definitions[join.name]) { throw Error('Table ' + tableName + ' joined on undefined table ' + join.name + '.'); }
 				var sourceKey = join.source_key || tableDef.primary_key || 'id';
 				var targetKey = join.target_key || definitions[join.name].primary_key || 'id';
-				joins[join.name] = { name: join.name, as: join.as, source_key: sourceKey, target_key: targetKey };
+				joins[join.name] = { name: join.name, as: join.as, source_key: sourceKey, target_key: targetKey, via: join.via };
 			});
 		}
 
@@ -145,7 +145,7 @@ Qb.prototype.normalize = function(definitions) {
 				var sourceKey = join.source_key || tableDef.primary_key || 'id';
 				var targetKey = join.target_key || definitions[joinName].primary_key || 'id';
 
-				joins[joinName] = { name: joinName, as: join.as, source_key: sourceKey, target_key: targetKey };
+				joins[joinName] = { name: joinName, as: join.as, source_key: sourceKey, target_key: targetKey, via: join.via };
 			}
 		}
 
@@ -235,19 +235,20 @@ function querySetup(spec) {
 	if (!spec) { throw Error('"Query" called without parameters.'); }
 
 	// Allow user to use some alternate keywords in query spec.
-	var selects = spec.selects = spec.selects || spec.select || spec.fields   || [];
-	var joins   = spec.joins   = spec.joins   || spec.join   || spec.include  || [];
-	var wheres  = spec.wheres  = spec.wheres  || spec.where  || spec.filters  || [];
-	var groups  = spec.groups  = spec.groups  || spec.group  || spec.groupBy  || [];
-
-	// Prepend spec.from to the joins array if exists.
-	if (spec.from) { spec.joins.unshift({ name: spec.from }); }
+	spec.selects = spec.selects || spec.select || [];
+	spec.joins   = spec.joins   || spec.join   || [];
+	spec.wheres  = spec.wheres  || spec.where  || [];
+	spec.groups  = spec.groups  || spec.group  || [];
 
 	// Let joins and selects be given as a single string.
-	if (_.isString(selects)) { selects = [{ name: selects }]; }
-	if (_.isString(joins))   { joins   = [{ name: joins }]; }
+	if (_.isString(spec.selects)) { spec.selects = [{ name: spec.selects }]; }
+	if (_.isString(spec.joins))   { spec.joins   = [{ name: spec.joins }]; }
+	if (_.isString(spec.from))    { spec.from    =  { name: spec.from }}
 
-	spec.selects = selects.map(function(el) {
+	// Prepend spec.from to the joins array if exists.
+	if (spec.from) { spec.joins.unshift(spec.from); }
+
+	spec.selects = spec.selects.map(function(el) {
 		var whitelist = ['functions', 'args', 'name', 'joinId', 'as'];
 		if (_.isString(el)) { return { name: el }; }
 		if (_.isString(el.functions)) { el.functions = [el.functions]; }
@@ -255,7 +256,7 @@ function querySetup(spec) {
 		return _.pick(el, whitelist);
 	});
 
-	spec.joins = joins.map(function(el) {
+	spec.joins = spec.joins.map(function(el) {
 		var whitelist = ['id', 'name', 'as', 'joinId'];
 		if (_.isString(el)) { return { name: el }; }
 		return _.pick(el, whitelist); 
@@ -323,7 +324,7 @@ function joinOnce(spec, join, joins, names) {
 		// in the same format as an element of spec.joins. Add the join to a
 		// stubbed "spec" object that we'll use in a moment.
 
-		var joinVia  = { table: intermediate, id: viaId, joinId: join.joinId };
+		var joinVia  = { name: intermediate, id: viaId, joinId: join.joinId };
 		var joinSpec = { joins: [joinVia] };
 
 		// Update current join so it joins via the intermediate table.
@@ -366,10 +367,6 @@ function joinOnce(spec, join, joins, names) {
 	// Get keys for join. Default to primary key if source/target keys are not set.
 	var sourceKey = sourceDef.joins[joinName].source_key || sourceDef.primary_key;
 	var joinKey   = sourceDef.joins[joinName].target_key || joinDef.primary_key;
-
-	// Get the alias ("AS") used for join/source key if exists, or just use the key as is.
-	sourceKey = _.findWhere(sourceDef.columns, { name: sourceKey }).property || sourceKey;
-	joinKey   = _.findWhere(joinDef.columns, { name: joinKey }).property || joinKey;
 
 	// Add a JOIN clause and return joins.
 	return joins.join(join.model).on(sourceJoin.model[sourceKey].equals(join.model[joinKey]));

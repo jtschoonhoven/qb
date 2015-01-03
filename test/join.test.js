@@ -109,4 +109,62 @@ describe('join.test.js', function() {
 
   });
 
+
+  describe('Join via intermediate tables', function() {
+
+      var def = { 
+        users: {
+          columns: ['id'],
+          joins: { 
+            posts: { target_key: 'user_id' }, 
+            tags: { via: 'posts' } 
+          }
+        },
+        posts: { 
+          columns: ['id', 'user_id'], 
+          joins: { 
+            tags: { via: 'posts_tags' }, 
+            users: { source_key: 'user_id' },
+            posts_tags: { target_key: 'post_id' }
+          }
+        }, 
+        posts_tags: { 
+          hidden: true,
+          columns: ['post_id', 'tag_id'], 
+          joins: { 
+            posts: { source_key: 'post_id' }, 
+            tags: { source_key: 'tag_id' } 
+          }
+        },
+        tags: { 
+          columns: ['id'],
+          join: { posts_tags: { target_key: 'tag_id' } }
+        }
+      }
+
+      var qb = new Qb(def);
+
+    it('through one intermediate', function() {
+      var spec = { select: 'id', from: 'posts', join: 'tags' };
+      var sql  = 'SELECT "posts"."id" FROM "posts" INNER JOIN "posts_tags" ON ("posts"."id" = "posts_tags"."post_id") INNER JOIN "tags" ON ("posts_tags"."tag_id" = "tags"."id")';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+    it('through two intermediates', function() {
+      var spec = { select: 'id', from: 'users', join: 'tags' };
+      var sql  = 'SELECT "users"."id" FROM "users" INNER JOIN "posts" ON ("users"."id" = "posts"."user_id") INNER JOIN "posts_tags" ON ("posts"."id" = "posts_tags"."post_id") INNER JOIN "tags" ON ("posts_tags"."tag_id" = "tags"."id")';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+    it('with alias', function() {
+      var spec = { select: 'id', joins: [{ name: 'posts', as: 'Blogs' }, { name: 'tags', as: 'Tags' }] };
+      var sql  = 'SELECT "Blogs"."id" FROM "posts" AS "Blogs" INNER JOIN "posts_tags" ON ("Blogs"."id" = "posts_tags"."post_id") INNER JOIN "tags" AS "Tags" ON ("posts_tags"."tag_id" = "Tags"."id")';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+  });
+
 });
