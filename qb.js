@@ -388,9 +388,9 @@ function select(query, spec) {
 		var def  = that.definitions[join.name].columns[select.name];
 		var name = def.property || def.name;
 
-		var selection = join.model[name];
-		if (!selection) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
+		if (!join.model[name]) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
 
+		var selection;
 		select.functions = select.functions || [];
 		select.functions.reverse().forEach(function(func) {
 
@@ -412,7 +412,7 @@ function select(query, spec) {
 				funcDef  = _.partial.apply(this, args);
 			}
 
-			selection = funcDef(selection).as('ok');
+			selection = funcDef(join.model[name]);
 		});
 
 		// if (select.as) { query.select(selection.as(select.as)); }
