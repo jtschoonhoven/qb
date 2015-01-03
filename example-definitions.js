@@ -1,74 +1,76 @@
+
+// Definitions for a blog platform.
+// Users write blog posts which can receive comments from other users.
+// Blog posts have a many-to-many relationship to tags via the 
+// posts_tags intermediate table.
+
 module.exports = {
 
-	users: {
-		name: "users",
-		as: "Users",
-		columns: [
-			{ name: "id" },
-			{ name: "created_at", as: "Join date" }
-		],
-		joins: {
-			petitions: { target_key: "user_id", type: "oneToMany", as: "Petitions created" },
-			signatures: { target_key: "user_id", type: "oneToMany", as: "Signatures" },
-			tags: { via: 'signatures', as: "Tags signed" }
-		}
-	},
+  users: {
+    as: "Users",
+    columns: { 
+      id: "User ID", 
+      name: "Full name", 
+      created_at: "Join date" 
+    },
+    joins: {
+      posts: { target_key: "user_id" }, // "target_key" is the key used to join the foreign table.
+      comments: { target_key: "user_id" } // When no "source_key" is specified, default is "id".
+    }
+  },
 
-	petitions: {
-		name: "events",
-		as: "Petitions",
-		columns: [
-			{ name: "id", as: "Petition ID" },
-			{ name: "user_id", as: "Creator" },
-			{ name: "created_at", as: "Date" }
-		],
-		joins: {
-			users: { source_key: "user_id", type: "oneToOne", as: "Creator" },
-			signatures: { target_key: "petition_id", type: "oneToMany", as: "Signatures" },
-			tags: { via: "taggings", as: "Tags" },
-			taggings: { target_key: 'taggable_id' }
-		}
-	},
+  posts: {
+    as: "Blog Posts",
+    columns: {
+      id: "Post ID",
+      user_id: "Author",
+      text: "Text",
+      created_at: "Post Date"
+    },
+    joins: {
+      users: { source_key: "user_id", as: "Author" }, // "source_key" is the key used to join this table.
+      comments: { target_key: "post_id" },
+      tags: { via: "posts_tags" },
+      posts_tags: { target_key: "post_id" }
+    }
+  },
 
-	signatures: {
-		as: "Signatures",
-		name: "signatures_users",
-		columns: [
-			{ name: "id", as: "Signature ID" },
-			"petition_id",
-			"user_id",
-			{ as: "Sign date", name: "created_at" },
-		],
-		joins: {
-			users: { source_key: "user_id", type: "manyToOne", as: "Signer" },
-			petitions: { source_key: "petition_id", type: "manyToOne", as: "Petition signed" },
-			tags: { source_key: "petition_id", via: "taggings", as: "Signature tags" },
-			taggings: { source_key: "petition_id", target_key: "taggable_id", type: "manyToOne" }
-		}
-	},
+  comments: {
+    as: "Comments",
+    columns: [
+      { name: "id", as: "Signature ID" },
+      { name: "post_id", as: "Post ID" },
+      { name: "user_id", as: "User ID" },
+      { name: "message", as: "Comment"},
+      { name: "created_at", as: "Comment Date" }
+    ],
+    joins: {
+      users: { source_key: "user_id" },
+      posts: { source_key: "post_id" }
+    }
+  },
 
-	tags: {
-		name: "tags",
-		as: "Tags",
-		columns: [ "id", "name" ],
-		joins: {
-			taggings: { target_key: 'tag_id' },
-			users: { via: "taggings", as: "Users signed" },
-			petitions: { via: "taggings", as: "Petitions tagged" },
-			taggings: { target_key: "tag_id", type: "oneToOne" }
-		}
-	},
+  posts_tags: {
+    hidden: true, // Exclude table from schema.
+    columns: [ "tag_id", "post_id" ], // Columns may be passed as array of strings.
+    joins: {
+      posts: { source_key: "post_id" },
+      tags: { source_key: "tag_id" },
+      users: { via: "posts" },
+      posts: { source_key: "post_id" }
+    }
+  },
 
-	taggings: {
-		name: "taggings",
-		as: "Taggings",
-		columns: [ "id", "tag_id", "taggable_id" ],
-		hidden: true,
-		joins: {
-			petitions: { source_key: "taggable_id", type: "manyToOne" },
-			signatures: { source_key: "taggable_id", type: "manyToOne" },
-			tags: { source_key: "tag_id", type: "oneToOne" }
-		}
-	}
-
+  tags: {
+    as: "Tags",
+    columns: [
+      { name: "id", as: "Tag ID" },
+      { name: "tag", as: "Tag" }
+    ],
+    joins: {
+      posts_tags: { target_key: 'tag_id', hidden: true },
+      users: { via: "posts_tags", as: "Related authors" },
+      posts: { via: "posts_tags", as: "Related posts" }
+    }
+  }
 };

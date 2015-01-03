@@ -34,9 +34,14 @@ app.use(express.static(path.join(__dirname, '../')));
 // Query Builder
 // ==================================================
 
-var definitions = require('../test/test-definitions');
+var definitions = require('../example-definitions');
 var Qb = require('../qb');
 var qb = new Qb(definitions, 'postgres');
+
+// Register custom functions.
+qb.functions.COUNT_DISTINCT = function(field) {
+  return field.count().distinct();
+};
 
 
 
@@ -48,7 +53,7 @@ app.post('/api/build', function(req, res) {
 	var spec = JSON.parse(req.body.data);
   var status = 'success';
 
-  var result = qb.query(spec);
+  var result = qb.query(spec).string;
   // try { var result = qb.query(spec); }
   // catch(err) {
   //   console.log(err);

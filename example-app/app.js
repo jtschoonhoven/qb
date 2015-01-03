@@ -23,10 +23,10 @@
 	var Join = Backbone.Model.extend();
 
 	Join.prototype.setAttributes = function(input) {
-		var table  = input[0].value;
+		var name   = input[0].value;
 		var joinId = input[0].joinId;
-		var alias  = input[0].label;
-		this.set({ table: table, joinId: joinId, alias: alias });
+		var as     = input[0].label;
+		this.set({ name: name, joinId: joinId, as: as });
 	};
 
 
@@ -35,8 +35,8 @@
 	Select.prototype.setAttributes = function(input) {
 		var method = input[0].value;
 		var joinId = input[1].joinId;
-		var field  = input[1].value;
-		this.set({ method: method, joinId: joinId, field: field });
+		var name   = input[1].value;
+		this.set({ functions: method, joinId: joinId, name: name });
 	};
 
 
@@ -272,7 +272,7 @@
 		var selected = {};
 		this.$el.find('select').each(function(i) {
 			var selection = {
-				value  : $(this).val(),
+				value  : $(this).val() || undefined,
 				label  : $(this.options[this.selectedIndex]).text(),
 				joinId : $(this.options[this.selectedIndex]).data('join-id'),
 				group  : $(this.options[this.selectedIndex]).closest('optgroup').prop('label')
@@ -298,7 +298,7 @@
 		{ 
 			group: 'Default', 
 			options: [
-				{ label: 'Each', value: 'each' }
+				{ label: 'Each', value: '' }
 			]
 		},{ 
 			group: 'Aggregators', 
@@ -406,7 +406,9 @@
 	var browserOnly = false;
 	var cachedSchema = require('./cached-schema.json');
 
-	tables.on('sync', function() { qb.render(); });
+	window.tables = tables;
+
+	tables.on('sync', function()  	{ qb.render(); });
 	tables.on('error', function() { useCachedSchema(); });
 	tables.fetch();
 
@@ -415,5 +417,6 @@
 		browserOnly = true;
 		qb.render();
 	}
+
 
 })()

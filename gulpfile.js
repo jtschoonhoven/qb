@@ -50,7 +50,7 @@ gulp.task('cache', function() {
 
 // Browserify example-app/app.js
 gulp.task('bundle', function() {
-  return browserify()
+  return browserify({ debug: true })
     .transform('jadeify')
     .add('./example-app/app.js')
     .bundle()

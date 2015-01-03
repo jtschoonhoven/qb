@@ -385,7 +385,10 @@ function select(query, spec) {
 		// If no joinId, assume spec.joins[0] (the FROM table).
 
 		var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
-		var selection = join.model[select.name];
+		var def  = that.definitions[join.name].columns[select.name];
+		var name = def.property || def.name;
+
+		var selection = join.model[name];
 		if (!selection) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
 
 		select.functions = select.functions || [];

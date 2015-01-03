@@ -1,100 +1,123 @@
 [
  {
-  "id": "users",
-  "name": "Users",
+  "name": "users",
   "columns": [
-   "id",
-   "Join date"
+   {
+    "name": "id",
+    "property": "User ID"
+   },
+   {
+    "name": "name",
+    "property": "Full name"
+   },
+   {
+    "name": "created_at",
+    "property": "Join date"
+   }
   ],
   "joins": [
    {
-    "id": "petitions",
-    "name": "Petitions created"
+    "name": "posts",
+    "source_key": "id",
+    "target_key": "user_id"
    },
    {
-    "id": "signatures",
-    "name": "Signatures"
-   },
-   {
-    "id": "tags",
-    "name": "Tags signed"
+    "name": "comments",
+    "source_key": "id",
+    "target_key": "user_id"
    }
   ]
  },
  {
-  "id": "petitions",
-  "name": "Petitions",
+  "name": "posts",
   "columns": [
-   "Petition ID",
-   "Creator",
-   "Date"
+   {
+    "name": "id",
+    "property": "Post ID"
+   },
+   {
+    "name": "user_id",
+    "property": "Author"
+   },
+   {
+    "name": "text",
+    "property": "Text"
+   },
+   {
+    "name": "created_at",
+    "property": "Post Date"
+   }
   ],
   "joins": [
    {
-    "id": "users",
-    "name": "Creator"
+    "name": "users",
+    "source_key": "user_id",
+    "target_key": "id"
    },
    {
-    "id": "signatures",
-    "name": "Signatures"
+    "name": "comments",
+    "source_key": "id",
+    "target_key": "post_id"
    },
    {
-    "id": "tags",
-    "name": "Tags"
-   },
-   {
-    "id": "taggings",
-    "name": "Taggings"
+    "name": "tags",
+    "source_key": "id",
+    "target_key": "id"
    }
   ]
  },
  {
-  "id": "signatures",
-  "name": "Signatures",
+  "name": "comments",
   "columns": [
-   "Signature ID",
-   "petition_id",
-   "user_id",
-   "Sign date"
+   {
+    "name": "id"
+   },
+   {
+    "name": "post_id"
+   },
+   {
+    "name": "user_id"
+   },
+   {
+    "name": "message"
+   },
+   {
+    "name": "created_at"
+   }
   ],
   "joins": [
    {
-    "id": "users",
-    "name": "Signer"
+    "name": "users",
+    "source_key": "user_id",
+    "target_key": "id"
    },
    {
-    "id": "petitions",
-    "name": "Petition signed"
-   },
-   {
-    "id": "tags",
-    "name": "Signature tags"
-   },
-   {
-    "id": "taggings",
-    "name": "Taggings"
+    "name": "posts",
+    "source_key": "post_id",
+    "target_key": "id"
    }
   ]
  },
  {
-  "id": "tags",
-  "name": "Tags",
+  "name": "tags",
   "columns": [
-   "id",
-   "name"
+   {
+    "name": "id"
+   },
+   {
+    "name": "tag"
+   }
   ],
   "joins": [
    {
-    "id": "taggings",
-    "name": "Taggings"
+    "name": "users",
+    "source_key": "id",
+    "target_key": "id"
    },
    {
-    "id": "users",
-    "name": "Users signed"
-   },
-   {
-    "id": "petitions",
-    "name": "Petitions tagged"
+    "name": "posts",
+    "source_key": "id",
+    "target_key": "id"
    }
   ]
  }
