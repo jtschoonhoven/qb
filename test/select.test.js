@@ -57,7 +57,7 @@ describe('select.test.js', function() {
   describe('Select using a builtin SQL function', function() {
 
     var def = { users: { columns: ['id'] } };
-    var sql = 'SELECT COUNT("users"."id") FROM "users"';
+    var sql = 'SELECT COUNT("users"."id") AS "id_count" FROM "users"';
     var qb  = new Qb(def);
 
     it('given as lowercase string', function() {
@@ -89,21 +89,21 @@ describe('select.test.js', function() {
 
     it('with no arguments prefilled', function() {
       qb.registerFunction('MY_FUNCTION');
-      var sql = 'SELECT MY_FUNCTION("users"."id") FROM "users"';
+      var sql = 'SELECT MY_FUNCTION("users"."id") AS "id_my_function" FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
 
     it('with argument prefilled on left', function() {
       qb.registerFunction('MY_FUNCTION', 'MY_FUNCTION', 'ARG1');
-      var sql = 'SELECT MY_FUNCTION(\'ARG1\', "users"."id") FROM "users"';
+      var sql = 'SELECT MY_FUNCTION(\'ARG1\', "users"."id") AS "id_my_function" FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
 
     it('with argument prefilled on right', function() {
       qb.registerFunction('MY_FUNCTION', 'MY_FUNCTION', null, 'ARG1');
-      var sql = 'SELECT MY_FUNCTION("users"."id", \'ARG1\') FROM "users"';
+      var sql = 'SELECT MY_FUNCTION("users"."id", \'ARG1\') AS "id_my_function" FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
@@ -120,21 +120,21 @@ describe('select.test.js', function() {
 
     it('given no extra arguments', function() {
       var spec  = { select: [{ name: 'id', functions: ['MY_FUNCTION'] }], from: 'users' };
-      var sql   = 'SELECT MY_FUNCTION("users"."id") FROM "users"';
+      var sql   = 'SELECT MY_FUNCTION("users"."id") AS "id_my_function" FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
 
     it('given an extra argument on left', function() {
       var spec  = { select: [{ name: 'id', functions: [{ name: 'MY_FUNCTION', args: ['ARG'] }] }], from: 'users' };
-      var sql   = 'SELECT MY_FUNCTION(\'ARG\', "users"."id") FROM "users"';
+      var sql   = 'SELECT MY_FUNCTION(\'ARG\', "users"."id") AS "id_my_function" FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
 
     it('given an extra argument on right', function() {
       var spec  = { select: [{ name: 'id', functions: [{ name: 'MY_FUNCTION', args: [null, 'ARG'] }] }], from: 'users' };
-      var sql   = 'SELECT MY_FUNCTION("users"."id", \'ARG\') FROM "users"';
+      var sql   = 'SELECT MY_FUNCTION("users"."id", \'ARG\') AS "id_my_function" FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
@@ -145,7 +145,7 @@ describe('select.test.js', function() {
   describe('Select using nested SQL function', function() {
 
     var def = { users: { columns: ['id'] } };
-    var sql = 'SELECT COUNT(DISTINCT("users"."id")) FROM "users"';
+    var sql = 'SELECT COUNT(DISTINCT("users"."id")) AS "id_distinct_count" FROM "users"';
     var qb  = new Qb(def);
 
     it('given as an array of strings', function() {
@@ -161,8 +161,8 @@ describe('select.test.js', function() {
     });
 
     it('by defining a custom function in qb.functions', function() {
-      qb.functions.COUNT_DISTINCT = function(field) { return field.count().distinct().as(); };
-      var spec  = { select: [{ name: 'id', functions: 'COUNT_DISTINCT' }], from: 'users' };
+      qb.functions.DISTINCT_COUNT = function(field) { return field.count().distinct().as('id_distinct_count'); };
+      var spec  = { select: [{ name: 'id', functions: 'DISTINCT_COUNT' }], from: 'users' };
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });

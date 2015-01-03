@@ -12,18 +12,19 @@ describe('register-functions.test.js', function() {
 
   describe('Register a new sql function', function() {
 
-    var sql = 'SELECT MY_FUNC("users"."id") FROM "users"';
 
     it('where key is same as function name', function() {
       qb.registerFunction('MY_FUNC');
+      var sql = 'SELECT MY_FUNC("users"."id") AS "id_my_func" FROM "users"';
       var spec  = { select: [{ name: 'id', functions: 'MY_FUNC' }], from: 'users' };
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
 
     it('where key is different from function name', function() {
-      qb.registerFunction('MY_KEY', 'MY_FUNC');
-      var spec  = { select: [{ name: 'id', functions: 'MY_KEY' }], from: 'users' };
+      qb.registerFunction('DIFFERENT_NAME', 'MY_FUNC');
+      var sql = 'SELECT MY_FUNC("users"."id") AS "id_different_name" FROM "users"';
+      var spec  = { select: [{ name: 'id', functions: 'DIFFERENT_NAME' }], from: 'users' };
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
@@ -37,14 +38,14 @@ describe('register-functions.test.js', function() {
 
     it('that are always inserted before user input', function() {
       qb.registerFunction('MY_FUNC', 'MY_FUNC', 'ARG1', 'ARG2');
-      var sql  = 'SELECT MY_FUNC(\'ARG1\', \'ARG2\', "users"."id") FROM "users"';
+      var sql  = 'SELECT MY_FUNC(\'ARG1\', \'ARG2\', "users"."id") AS "id_my_func" FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
 
     it('that are always inserted after user input', function() {
       qb.registerFunction('MY_FUNC', 'MY_FUNC', null, 'ARG1', 'ARG2');
-      var sql  = 'SELECT MY_FUNC("users"."id", \'ARG1\', \'ARG2\') FROM "users"';
+      var sql  = 'SELECT MY_FUNC("users"."id", \'ARG1\', \'ARG2\') AS "id_my_func" FROM "users"';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });

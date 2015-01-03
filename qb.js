@@ -44,7 +44,8 @@ Qb.prototype.registerFunction = function(id, name) {
 		func = _.partial.apply(this, args);
 	}
 
-	return this.functions[id || name] = func;
+	this.functions[id || name] = func;
+	return func;
 };
 
 
@@ -250,7 +251,7 @@ function querySetup(spec) {
 		var whitelist = ['functions', 'args', 'name', 'joinId', 'as'];
 		if (_.isString(el)) { return { name: el }; }
 		if (_.isString(el.functions)) { el.functions = [el.functions]; }
-		if (_.isString(el.args)) { el.args = [el.args] }
+		if (_.isString(el.args)) { el.args = [el.args]; }
 		return _.pick(el, whitelist);
 	});
 
@@ -263,7 +264,7 @@ function querySetup(spec) {
 	// Remove any nonwhitelisted keys from spec.
 	var whitelist = ['selects', 'joins', 'wheres', 'groups'];
 	Object.keys(spec).forEach(function(key) {
-		if (!_.contains(whitelist, key)) { delete spec[key] }
+		if (!_.contains(whitelist, key)) { delete spec[key]; }
 	});
 }
 
@@ -386,7 +387,7 @@ function select(query, spec) {
 
 		var join  = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
 		var def   = that.definitions[join.name].columns[select.name];
-		var alias = select.as || def.as;
+		var alias = def.as;
 
 		var selection = join.model[def.name];
 		if (!selection) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
@@ -412,12 +413,13 @@ function select(query, spec) {
 				funcDef  = _.partial.apply(this, args);
 			}
 
-			// Append a suffix to funcName.
-			var suffix = '_' + func.name.toLowerCase();
-			alias = alias ? (alias + suffix) : (select.name + suffix);
-
+			// Append function name as a suffix to "AS".
+			alias = (alias || select.name) + '_' + func.name.toLowerCase();
 			selection = funcDef(selection);
 		});
+
+		// Use alias defined in SELECT even if one was generated above.
+		alias = select.as || alias;
 
 		if (alias) { query.select(selection.as(alias)); }
 		else { query.select(selection); }
