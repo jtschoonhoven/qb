@@ -171,6 +171,7 @@ Qb.prototype.normalize = function(definitions) {
 // Tables and columns marked "hidden" are omitted and schema
 // uses arrays where definitions uses objects.
 
+// **This should be a function called by QB, hidden by scope**
 Qb.prototype.buildSchema = function(definitions) {
 	var publicDefinitions = _.omit(definitions, function(def) { return def.hidden; });
 
@@ -214,15 +215,12 @@ Qb.prototype.query = function(spec) {
 
 	join.call(this, query, spec);
 	select.call(this, query, spec);
-	// where.call(this, query, spec);
+	where.call(this, query, spec);
 	// group.call(this, query, spec);
 
 	this.lastQuery           = query.toQuery();
 	this.lastQuery.string    = query.toString();
 	this.lastQuery.formatted = formatSQL(this.lastQuery.string);
-
-	// console.log('\n');
-	// console.log(this.lastQuery.formatted);
 
 	return this.lastQuery;
 };
@@ -381,52 +379,65 @@ function joinOnce(spec, join, joins, names) {
 // Add a SELECT clause for each field in spec.selects.
 function select(query, spec) {
 	var that = this;
-	spec.selects.forEach(function(select) {
 
-		// Lookup the model to be selected from in spec.joins.
-		// If no joinId, assume spec.joins[0] (the FROM table).
-
-		var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
-		var def  = that.definitions[join.name].columns[select.name];
-		if (!def) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
-
-		var alias = def.as;
-
-		var selection = join.model[def.name];
-		if (!selection) { throw Error('Column "' + def.name + '" not defined in "' + join.name + '".'); }
-
-		select.functions = select.functions || [];
-		select.functions.reverse().forEach(function(func) {
-
-			// Cast func and args if given as string.
-			if (_.isString(func))      { func = { name: func };   }
-			if (_.isString(func.args)) { func.args = [func.args]; }
-
-			func.name = func.name.toUpperCase();
-			func.args = func.args || [];
-
-			// Lookup from qb.functions if exists, else register new.
-			var funcDef = that.functions[func.name];
-			if (!funcDef) { funcDef = that.registerFunction(func.name); }
-
-			// Prefill arguments to funcDef if exists.
-			if (!_.isEmpty(func.args)) {
-				var args = func.args.map(function(arg) { return !arg && arg !== 0 ? _ : arg; });
-				args     = [funcDef].concat(args);
-				funcDef  = _.partial.apply(this, args);
-			}
-
-			// Append function name as a suffix to "AS".
-			alias = (alias || select.name) + '_' + func.name.toLowerCase();
-			selection = funcDef(selection);
-		});
-
-		// Use alias defined in SELECT even if one was generated above.
-		alias = select.as || alias;
-
-		if (alias) { query.select(selection.as(alias)); }
-		else { query.select(selection); }
+	var selections = spec.selects.map(function(select, index) {
+		return selectOnce.call(that, spec, select, index);
 	});
+
+	selections.forEach(function(selection) {
+		query.select(selection);
+	});
+}
+
+
+// Return a single SELECT clause.
+function selectOnce(spec, select, index) {
+	var that = this;
+
+	// Lookup the model to be selected from in spec.joins.
+	// If no joinId, assume spec.joins[0] (the FROM table).
+
+	var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
+	var def  = that.definitions[join.name].columns[select.name];
+	if (!def) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
+
+	var alias = def.as;
+
+	var selection = join.model[def.name];
+	if (!selection) { throw Error('Column "' + def.name + '" not defined in "' + join.name + '".'); }
+
+	select.functions = select.functions || [];
+	select.functions.reverse().forEach(function(func) {
+
+		// Cast func and args if given as string.
+		if (_.isString(func))      { func = { name: func };   }
+		if (_.isString(func.args)) { func.args = [func.args]; }
+
+		func.name = func.name.toUpperCase();
+		func.args = func.args || [];
+
+		// Lookup from qb.functions if exists, else register new.
+		var funcDef = that.functions[func.name];
+		if (!funcDef) { funcDef = that.registerFunction(func.name); }
+
+		// Prefill arguments to funcDef if exists.
+		if (!_.isEmpty(func.args)) {
+			var args = func.args.map(function(arg) { return !arg && arg !== 0 ? _ : arg; });
+			args     = [funcDef].concat(args);
+			funcDef  = _.partial.apply(this, args);
+		}
+
+		// Append function name as a suffix to "AS".
+		alias = (alias || select.name) + '_' + func.name.toLowerCase();
+		selection = funcDef(selection);
+	});
+
+	// Use alias defined in SELECT even if one was generated above.
+	alias = select.as || alias;
+	if (alias) { selection = selection.as(alias); }
+
+	spec.selects[index].selection = selection;
+	return selection;
 }
 
 
