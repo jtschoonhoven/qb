@@ -117,7 +117,7 @@ describe('define.test.js', function() {
   describe('Define joins', function() {
 
     var expected = { 
-      posts: { name: 'posts', as: undefined, source_key: 'id', target_key: 'uid' } 
+      posts: { name: 'posts', as: undefined, source_key: 'id', target_key: 'uid', via: undefined } 
     };
 
     it('as an array of objects', function() {
@@ -138,7 +138,7 @@ describe('define.test.js', function() {
   describe('Define joins with alias', function() {
 
     var expected = { 
-      posts: { name: 'posts', as: 'Postings', source_key: 'id', target_key: 'uid' } 
+      posts: { name: 'posts', as: 'Postings', source_key: 'id', target_key: 'uid', via: undefined } 
     };
 
     it('as an array of objects', function() {

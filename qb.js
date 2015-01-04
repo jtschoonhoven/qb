@@ -128,9 +128,15 @@ Qb.prototype.normalize = function(definitions) {
 
 		if (_.isArray(tableDef.joins)) {
 			tableDef.joins.forEach(function(join) {
-				if (!definitions[join.name]) { throw Error('Table ' + tableName + ' joined on undefined table ' + join.name + '.'); }
+
+				if (!definitions[join.name]) { 
+					throw Error('Table ' + tableName + ' joined on undefined table ' + join.name + '.'); 
+				}
+
+				// Source/target keys default to primary_key if exists, else "id".
 				var sourceKey = join.source_key || tableDef.primary_key || 'id';
 				var targetKey = join.target_key || definitions[join.name].primary_key || 'id';
+
 				joins[join.name] = { name: join.name, as: join.as, source_key: sourceKey, target_key: targetKey, via: join.via };
 			});
 		}
@@ -139,9 +145,10 @@ Qb.prototype.normalize = function(definitions) {
 			for (var joinName in tableDef.joins) {
 				var join = tableDef.joins[joinName];
 
-				if (!definitions[joinName]) { throw Error('Table ' + tableName + ' joined on undefined table ' + joinName + '.'); }
+				if (!definitions[joinName]) { 
+					throw Error('Table ' + tableName + ' joined on undefined table ' + joinName + '.'); 
+				}
 
-				// Source/target keys default to primary_key if exists, else "id".
 				var sourceKey = join.source_key || tableDef.primary_key || 'id';
 				var targetKey = join.target_key || definitions[joinName].primary_key || 'id';
 
@@ -160,12 +167,9 @@ Qb.prototype.normalize = function(definitions) {
 
 // Create a map of the database (schema) that shows defined
 // tables in the DB and how to join them. Qb.schema is
-// meant to be exported for user by a service or end user.
-
-// Note: right now, schema is essentially a copy of
-// definitions that uses arrays. This is because my own use
-// case is for this to work with Backbone, though I'm unsure
-// if that is the best solution in general.
+// meant to be exported for use by a service or end user.
+// Tables and columns marked "hidden" are omitted and schema
+// uses arrays where definitions uses objects.
 
 Qb.prototype.buildSchema = function(definitions) {
 	var publicDefinitions = _.omit(definitions, function(def) { return def.hidden; });
@@ -382,8 +386,8 @@ function select(query, spec) {
 		// Lookup the model to be selected from in spec.joins.
 		// If no joinId, assume spec.joins[0] (the FROM table).
 
-		var join  = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
-		var def   = that.definitions[join.name].columns[select.name];
+		var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
+		var def  = that.definitions[join.name].columns[select.name];
 		if (!def) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
 
 		var alias = def.as;
@@ -426,9 +430,9 @@ function select(query, spec) {
 }
 
 
-// // Apply where conditions and AND/OR logic.
-// function where(query, spec) {
-// 	var that  = this;
+// Apply where conditions and AND/OR logic.
+function where(query, spec) {
+	var that  = this;
 // 	var model = this.models[spec.table];
 
 // 	spec.filters = spec.filters || [];
@@ -452,7 +456,7 @@ function select(query, spec) {
 // 		// Apply to query.
 // 		query.where(block);
 // 	});
-// }
+}
 
 
 

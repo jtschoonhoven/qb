@@ -182,7 +182,19 @@ describe('select.test.js', function() {
       expect(query.string).to.equal(sql);
     });
 
-    it('for nested functions');
+    it('defined in query spec', function() {
+      var spec  = { select: [{ name: 'id', functions: 'count', as: 'num users' }], from: 'users' };
+      var sql   = 'SELECT COUNT("users"."id") AS "num users" FROM "users"';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+    it('for nested functions', function() {
+      var spec  = { select: [{ name: 'id', functions: ['count', 'distinct'] }], from: 'users' };
+      var sql   = 'SELECT COUNT(DISTINCT("users"."id")) AS "ID_distinct_count" FROM "users"';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
 
   });
 
