@@ -410,7 +410,7 @@ function SelectSpec(select) {
 	if (_.isString(select)) { select = { name: select }; }
 	if (_.isString(select.functions)) { select.functions = [select.functions]; }
 	if (_.isString(select.args)) { select.args = [select.args]; }
-	var properties = _.pick(select, ['functions', 'args', 'name', 'joinId', 'as']);
+	var properties = _.pick(select, ['functions', 'args', 'name', 'joinId', 'as', 'value']);
 	_.extend(this, properties);
 }
 
@@ -424,12 +424,23 @@ SelectSpec.prototype.toSQL = function(qb) {
 	var join = qb.spec.joins.findWhere({ id: this.joinId }) || qb.spec.joins.first();
 	var def  = qb.definitions[join.name].columns[this.name];
 
-	if (!def) { 
-		throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); 
+	if (!def && !this.value) { 
+		throw Error('Column "' + this.name + '" not defined in "' + join.name + '".'); 
 	}
 
-	var alias     = def.as;
-	var selection = join.model[def.name];
+	if (def) {
+		var alias     = def.as;
+		var selection = join.model[def.name];
+	}
+
+	else if (_.isString(this.value)) {
+		var escaped   = '\'' + this.value + '\'';
+		var selection = join.model.literal(escaped);
+	} 
+
+	else if (_.isFinite(this.value)) { 
+		var selection = join.model.literal(this.value);
+	}
 
 	if (!selection) { 
 		throw Error('Column "' + def.name + '" not defined in "' + join.name + '".'); 
@@ -457,7 +468,7 @@ SelectSpec.prototype.toSQL = function(qb) {
 		}
 
 		// Append function name as a suffix to "AS".
-		alias = (alias || that.name) + '_' + func.name.toLowerCase();
+		alias = (alias || that.name || 'col') + '_' + func.name.toLowerCase();
 		selection = funcDef(selection);
 	});
 

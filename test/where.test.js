@@ -6,11 +6,6 @@ var mocha   = require('mocha')
 
 describe('where.test.js', function() {
 
-  // filter on defined field in FROM >> 'id'
-  // filter on joined field via joinId >> { field: { name: 'id', joinId: 2 } }
-  // filter with function
-  // filter referencing selected field
-
   describe('Filter with a WHERE clause', function() {
 
     var def = { users: { columns: ['id'] } };

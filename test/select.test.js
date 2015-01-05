@@ -32,6 +32,42 @@ describe('select.test.js', function() {
   });
 
 
+  describe('Select a static value', function() {
+
+    var def = { users: { columns: ['id'] } };
+    var qb  = new Qb(def);
+
+    it('as integer', function() {
+      var spec  = { select: { value: 1 }, from: 'users' };
+      var sql   = 'SELECT 1 FROM "users"';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+    it('as string', function() {
+      var spec  = { select: { value: 'one' }, from: 'users' };
+      var sql   = 'SELECT \'one\' FROM "users"';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+    it('with alias', function() {
+      var spec  = { select: { value: 'one', as: 'num' }, from: 'users' };
+      var sql   = 'SELECT \'one\' AS "num" FROM "users"';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+    it('with function', function() {
+      var spec  = { select: { value: 1, functions: 'sum' }, from: 'users' };
+      var sql   = 'SELECT SUM(1) AS "col_sum" FROM "users"';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+  });
+
+
   describe('Select a field with an alias', function() {
 
     var def = { users: { columns: { id: 'ID' } } };
