@@ -409,7 +409,7 @@ SelectSpec.prototype.toSQL = function(qb, ignoreAlias) {
 	var join = qb.spec.joins.findWhere({ id: this.joinId }) || qb.spec.joins.first();
 	var def  = qb.definitions[join.name].columns[this.name];
 
-	if (!def && !this.value) { 
+	if (!def && _.isUndefined(this.value)) {
 		throw Error('Column "' + this.name + '" not defined in "' + join.name + '".'); 
 	}
 
