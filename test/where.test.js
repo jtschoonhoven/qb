@@ -4,7 +4,7 @@ var mocha   = require('mocha')
 ,   _       = require('underscore')
 ,   Qb      = require('../qb');
 
-describe.only('where.test.js', function() {
+describe('where.test.js', function() {
 
 
     var def = { 

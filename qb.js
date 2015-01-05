@@ -474,9 +474,10 @@ function Wheres(wheres) {
 
 Wheres.prototype.toSQL = function(query, qb) {
 	var filters = this.map(function(where) { 
-		return where.toSQL(qb);
+		var filter = where.toSQL(qb);
+		if (query) { query.where(filter); }
+		return filter;
 	});
-	if (query) { query.where(filters); }
 	return filters;
 };
 
