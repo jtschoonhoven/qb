@@ -35,7 +35,7 @@
 
 	Select.prototype.setAttributes = function(input) {
 		this.set({
-			functions : input[0].value,
+			functions : input[0].value || undefined,
 			joinId    : input[1].joinId,
 			name      : input[1].value
 		});
@@ -45,11 +45,10 @@
 	var Where = Backbone.Model.extend();
 
 	Where.prototype.setAttributes = function(input) {
-		this.set({
-			field    : input[0].value,
-			joinId   : input[0].joinId,
-			operator : input[1].value,
-			value    : input[2].value
+		this.set({ 
+			field: { name: input[0].value, joinId: input[0].joinId }, 
+			operator: input[1].value, 
+			match: { value: input[2].value } 
 		});
 	};
 
@@ -147,7 +146,7 @@
 		el: '#app-goes-here',
 		template: require('./templates/query-builder.jade'),
 		alert: require('./templates/browserOnly.jade'),
-		events: { 'submit': 'build' }
+		events: { 'submit': 'build', 'click .add-filter': 'addFilter' }
 	});
 
 
@@ -218,6 +217,12 @@
 	};
 
 
+
+	QueryBuilder.prototype.addFilter = function(e) {
+		this.whereSet.render();
+	};
+
+
 	// Construct QueryBuilder view in global scope.
 	window.qb = new QueryBuilder();
 
@@ -247,9 +252,9 @@
 
 
 	InputView.prototype.events = {
-		'change select'     : 'selectInput',
-		'click .add-btn'    : 'addInput',
-		'click .remove-btn' : 'removeInput'
+		'change select, input' : 'selectInput',
+		'click .add-btn'       : 'addInput',
+		'click .remove-btn'    : 'removeInput'
 	};
 
 
@@ -273,7 +278,7 @@
 
 		if (!this.isRoot) {
 			var fieldset = new this.ParentView({ 
-				el: this.$el.find('.content'),
+				el: this.$('.content'),
 				collection: this.collection, 
 				model: this.model,
 				isRoot: true,
@@ -288,7 +293,7 @@
 			collection: this.collection
 		});
 
-		var targetEl = this.parent.$el.find('.content').first();
+		var targetEl = this.parent.$('.content').first();
 		siblingView.render().$el.appendTo(targetEl);
 		this.parent.childViews.push(siblingView);
 	};
@@ -301,12 +306,12 @@
 
 		// Grab specified attributes from each input in form.
 		var selected = {};
-		this.$el.find('select').each(function(i) {
+		this.$('select, input').each(function(i) {
 			var selection = {
-				value  : $(this).val() || undefined,
-				label  : $(this.options[this.selectedIndex]).text(),
-				joinId : $(this.options[this.selectedIndex]).data('join-id'),
-				group  : $(this.options[this.selectedIndex]).closest('optgroup').prop('label')
+				value  : $(this).val(),
+				label  : this.options ? $(this.options[this.selectedIndex]).text() : undefined,
+				joinId : this.options ? $(this.options[this.selectedIndex]).data('join-id') : undefined,
+				group  : this.options ? $(this.options[this.selectedIndex]).closest('optgroup').prop('label') : undefined
 			};
 			selected[i] = selection;
 		});
@@ -345,6 +350,15 @@
 				{ label: 'Year of', value: 'quarter' }
 			]
 		}
+	];
+
+	InputView.prototype.operators = [
+		{ label: 'Equals', value: 'equals' },
+		{ label: 'Does not equal', value: 'notEqual' },
+		{ label: 'Greater than', value: 'gt' },
+		{ label: 'Greater or equal to', value: 'gte' },
+		{ label: 'Less than', value: 'lt' },
+		{ label: 'Less or equal to', value: 'lte' }
 	];
 
 
@@ -392,13 +406,13 @@
 			var childView = new that.ChildView({ 
 				View: that.ChildView,
 				ParentView: that.View,
-				isRoot: that.isRoot, 
+				isRoot: that.isRoot,
 				parent: that,
 				collection: that.collection,
 			});
 
 			that.childViews.push(childView);
-			var targetEl = that.$el.find('.content').first();
+			var targetEl = that.$('.content').first();
 			childView.render().$el.appendTo(targetEl);
 		});
 	};
@@ -430,6 +444,11 @@
 		ChildView: WhereView,
 		label: 'Filter'
 	});
+
+	WhereSet.prototype.listen = function() {
+		Fieldset.prototype.listen.call(this);
+		this.listenTo(qb.joinSet.collection, 'add remove change', this.renderChildren);
+	};
 
 	WhereSet.prototype.View = WhereSet;
 

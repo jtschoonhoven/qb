@@ -9,7 +9,7 @@ describe('where.test.js', function() {
 
     var def = { 
       users: { columns: ['id', 'postId'], joins: { posts: { source_key: 'postId' } } }, 
-      posts: { columns: ['id', 'title'] } 
+      posts: { columns: { id: 'ID', title: 'Title' }, as: 'Blogs' } 
     };
 
     var qb  = new Qb(def);
@@ -38,7 +38,7 @@ describe('where.test.js', function() {
         join   : [{ name: 'posts', id: 1 }], 
         where  : { field: { name: 'id', joinId: 1 }, match: { value: 1 } }
       };
-      var sql   = 'SELECT "users"."id" FROM "users" INNER JOIN "posts" ON ("users"."postId" = "posts"."id") WHERE ("posts"."id" = 1)';
+      var sql   = 'SELECT "users"."id" FROM "users" INNER JOIN "posts" AS "Blogs" ON ("users"."postId" = "Blogs"."id") WHERE ("Blogs"."id" = 1)';
       var query = qb.query(spec);
       expect(query.string).to.equal(sql);
     });
@@ -73,7 +73,7 @@ describe('where.test.js', function() {
     it('with AND and OR logic', function() {
       var spec = { 
         select: 'id', 
-        from: 'users', 
+        from: 'users',
         where: [
           { or: [{ field: 'id', match: { value: 1 } }, { field: 'id', match: { value: 2 } }] },
           { or: [{ field: 'postId', match: { value: 2 } }, { field: 'postId', match: { value: 3 } }] }

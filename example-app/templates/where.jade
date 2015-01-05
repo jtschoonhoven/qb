@@ -1,0 +1,31 @@
+
+div(class="form-group")
+  - var labelText = isRoot ? 'Filter:' : 'or:'
+  label(class="col-sm-1 col-xs-2 control-label") #{labelText}
+
+  div(class="col-sm-4 col-sm-offset-0 col-xs-10 col-xs-offset-2")
+    select(name="model" class="form-control")
+      option(disabled selected) ...
+
+        - var joinable = qb.joinSet.collection.toJSON()
+        each join in joinable
+          - var joinAlias = join.as || join.name
+          optgroup(label=joinAlias)
+
+            - var joinableCols = tables.get(join.name).get('columns')
+            each column in joinableCols
+              - var isSelected = model && model.get('field').joinId === join.id && model.get('field').name === column.name
+              - var colAlias   = column.as || column.name;
+              option(value=column.name data-join-id=join.id selected=isSelected) #{colAlias}
+
+
+  div(class="col-sm-2 col-xs-10")
+    select(name="operator" class="form-control")
+      each op in operators
+        - var isSelected = model && model.get('operator') === op.value
+        option(value=op.value selected=isSelected) #{op.label}
+
+
+  div(class="col-sm-4 col-xs-10")
+    - var value = model ? model.get('match').value : ''
+    input(type="text" name="match" class="form-control" value=value)

@@ -399,7 +399,8 @@ function SelectSpec(select) {
 }
 
 
-SelectSpec.prototype.toSQL = function(qb) {
+
+SelectSpec.prototype.toSQL = function(qb, ignoreAlias) {
 	var that = this;
 
 	// Lookup the model to be selected from in spec.joins.
@@ -417,14 +418,14 @@ SelectSpec.prototype.toSQL = function(qb) {
 		var selection = join.model[def.name];
 	}
 
+	else if (_.isFinite(this.value)) { 
+		var selection = join.model.literal(this.value);
+	}
+
 	else if (_.isString(this.value)) {
 		var escaped   = '\'' + this.value + '\'';
 		var selection = join.model.literal(escaped);
 	} 
-
-	else if (_.isFinite(this.value)) { 
-		var selection = join.model.literal(this.value);
-	}
 
 	if (!selection) { 
 		throw Error('Column "' + def.name + '" not defined in "' + join.name + '".'); 
@@ -457,8 +458,10 @@ SelectSpec.prototype.toSQL = function(qb) {
 	});
 
 	// Use alias defined in SELECT even if one was generated above.
+	// If generating a WHERE clause, ignoreAlias will be true.
+
 	alias = this.as || alias;
-	if (alias) { selection = selection.as(alias); }
+	if (alias && !ignoreAlias) { selection = selection.as(alias); }
 
 	this.selection = selection;
 	return selection;
@@ -496,8 +499,8 @@ WhereSpec.prototype.toSQL = function(qb) {
 	var filter;
 
 	if (this.field && this.match) {
-		var field  = this.field.toSQL(qb);
-		var match  = this.match.toSQL(qb);
+		var field  = this.field.toSQL(qb, 'ignoreAlias');
+		var match  = this.match.toSQL(qb, 'ignoreAlias');
 		filter = field[this.op](match);
 	}
 
