@@ -4,12 +4,12 @@ var mocha   = require('mocha')
 ,   _       = require('underscore')
 ,   Qb      = require('../qb');
 
-describe.only('where.test.js', function() {
+describe('where.test.js', function() {
 
-  // filter on defined field
+  // filter on defined field in FROM >> 'id'
+  // filter on joined field via joinId >> { field: { name: 'id', joinId: 2 } }
   // filter with function
   // filter referencing selected field
-  { where: { field:  'ok' } }
 
   describe('Filter with a WHERE clause', function() {
 

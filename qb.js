@@ -208,15 +208,16 @@ Qb.prototype.buildSchema = function(definitions) {
 // Assemble query to spec. Returns a string of SQL.
 Qb.prototype.query = function(spec) {
 	var that = this;
+	this.spec = new QuerySpec(spec);
 
-	querySetup.call(this, spec);
-	var from  = spec.joins[0].name;
+	var from = this.spec.joins.first().name;
+
+	if (!this.models[from]) {
+		throw Error('Table "' + from + '" is not defined.');
+	}
+
 	var query = this.models[from].select([]);
-
-	join.call(this, query, spec);
-	select.call(this, query, spec);
-	where.call(this, query, spec);
-	// group.call(this, query, spec);
+	this.spec.toSQL(query, this);
 
 	this.lastQuery           = query.toQuery();
 	this.lastQuery.string    = query.toString();
@@ -226,117 +227,128 @@ Qb.prototype.query = function(spec) {
 };
 
 
-
-// QuerySetup performs the same role as "normalize" does
-// above. Format query spec as a nested object, filter
-// keys to whitelist, and fill in default values.
-
-function querySetup(spec) {
-	var that = this;
-
-	if (!spec) { throw Error('"Query" called without parameters.'); }
-
-	// Allow user to use some alternate keywords in query spec.
-	spec.selects = spec.selects || spec.select || [];
-	spec.joins   = spec.joins   || spec.join   || [];
-	spec.wheres  = spec.wheres  || spec.where  || [];
-	spec.groups  = spec.groups  || spec.group  || [];
-
-	// Let joins and selects be given as a single string.
-	if (_.isString(spec.selects)) { spec.selects = [{ name: spec.selects }]; }
-	if (_.isString(spec.joins))   { spec.joins   = [{ name: spec.joins }]; }
-	if (_.isString(spec.from))    { spec.from    =  { name: spec.from }}
-
-	// Prepend spec.from to the joins array if exists.
-	if (spec.from) { spec.joins.unshift(spec.from); }
-
-	spec.selects = spec.selects.map(function(el) {
-		var whitelist = ['functions', 'args', 'name', 'joinId', 'as'];
-		if (_.isString(el)) { return { name: el }; }
-		if (_.isString(el.functions)) { el.functions = [el.functions]; }
-		if (_.isString(el.args)) { el.args = [el.args]; }
-		return _.pick(el, whitelist);
-	});
-
-	spec.joins = spec.joins.map(function(el) {
-		var whitelist = ['id', 'name', 'as', 'joinId'];
-		if (_.isString(el)) { return { name: el }; }
-		return _.pick(el, whitelist); 
-	});
-
-	// Remove any nonwhitelisted keys from spec.
-	var whitelist = ['selects', 'joins', 'wheres', 'groups'];
-	Object.keys(spec).forEach(function(key) {
-		if (!_.contains(whitelist, key)) { delete spec[key]; }
-	});
-}
-
-
-
-// Join each table in spec.joins array.
-function join(query, spec) {
-	var that = this;
-
-	// For each join in spec.joins, append a JOIN clause to
-	// the "joins" model. Keep track of each alias and number
-	// of times used in "names" array (avoids reusing alias).
-
-	var from  = spec.joins[0];
-	var name  = from.name;
-	var def   = this.definitions[name];
-	var alias = from.as || def.as;
-	var joins = this.models[name].as(alias);
-	var names = [{ alias: alias || name, used: 1 }];
-
-	// Save model of FROM table to spec.joins.
-	spec.joins[0].model = joins;
-
-	// Note that i=1, rather than i=0, correctly skips the
-	// first element in spec.joins (which was joined above).
-
-	for (var i=1; i<spec.joins.length; i++) {
-		var thisJoin = spec.joins[i];
-		joins = joinOnce.call(that, spec, thisJoin, joins, names);
+function QuerySpec(spec) {
+	if (!_.isObject(spec)) {
+		throw Error('No query specifications were given.')
 	}
 
-	query.from(joins);
+	// Specs may be named in plural or singular form.
+	var joins   = spec.joins   || spec.join   || [];
+	var selects = spec.selects || spec.select || [];
+	var wheres  = spec.wheres  || spec.where  || [];
+
+	// Force specs to array.
+	if (!_.isArray(joins))   { joins   = [joins]; }
+	if (!_.isArray(selects)) { selects = [selects]; }
+	if (!_.isArray(wheres))  { wheres  = [wheres]; }
+
+	// Syntactic sugar allows first join to have special key "from".
+	if (spec.from) { joins.unshift(spec.from); }
+
+	if (joins.length === 0) {
+		throw Error('No FROM table was specified.');
+	}
+
+	this.joins   = new Joins(joins);
+	this.selects = new Selects(selects);
+	this.wheres  = new Wheres(wheres);
+}
+
+QuerySpec.prototype.toSQL = function(query, qb) {
+	this.joins.toSQL(query, qb);
+	this.selects.toSQL(query, qb);
+	this.wheres.toSQL(query, qb);
+};
+
+
+function Collection(context) {
+	var that = context;
+
+	this.first = function() {
+		return that.collection[0];
+	};
+
+	this.at = function(index) {
+		return this.collection[index];
+	};
+
+	this.findWhere = function(keyValue) {
+		return _.findWhere(that.collection, keyValue);
+	};
+
+	this.length = function() {
+		return this.collection.length;
+	};
+
+	this.each = function(iterator) {
+		_.each(that.collection, iterator);
+		return that.collection;
+	};
+
+	this.map = function(iterator) {
+		return _.map(that.collection, iterator)
+	};
 }
 
 
+function Joins(joins) {
+	this.collection = joins.map(function(join) {
+		return new JoinSpec(join);
+	});
+	_.extend(this, new Collection(this));
+}
 
-// A single join operation. Called for each join in spec.joins.
-function joinOnce(spec, join, joins, names) {
+
+Joins.prototype.toSQL = function(query, qb) {
+	var that  = this;
+	var names = [];
+	var joins;
+
+	this.each(function(join, index) {
+		joins = join.toSQL(qb, joins, names);
+	});
+
+	query.from(joins);
+};
+
+
+function JoinSpec(join) {
+	if (_.isString(join)) { join = { name: join }; }
+	var properties = _.pick(join, ['id', 'name', 'as', 'joinId']);
+	_.extend(this, properties);
+}
+
+
+JoinSpec.prototype.toSQL = function(qb, joins, names, source) {
+	var that = this;
+
+	if (!joins) {
+		var alias  = this.as || qb.definitions[this.name].as;
+		this.model = qb.models[this.name].as(alias);
+		names      = [{ alias: alias || this.name, used: 1 }];
+		return this.model;
+	}
 
 	// The "source" table is the table being joined ON. If not specified, this 
-	// always defaults to the first join in spec.joins (the FROM table). 
+	// always defaults to the first join in spec.joins (the FROM table).
 
-	var sourceJoin = _.findWhere(spec.joins, { id: join.joinId }) || spec.joins[0];
-	var sourceDef  = this.definitions[sourceJoin.name];
+	var sourceJoin = source || qb.spec.joins.findWhere({ id: this.joinId }) || qb.spec.joins.first();
+	var sourceDef  = qb.definitions[sourceJoin.name];
 
 	// Intermediate tables are joined through implicitly according
 	// to the "via" attribute in definitions. Intermediates sit
 	// in between a join table and its defined source.
 
-	var intermediate = sourceDef.joins[join.name].via;
+	var intermediate = sourceDef.joins[this.name].via;
 
 	if (intermediate) {
 		var viaId = _.uniqueId('_via_');
 
-		// Define a join between the intermediate table and the current source
-		// in the same format as an element of spec.joins. Add the join to a
-		// stubbed "spec" object that we'll use in a moment.
+		var firstJoin = new JoinSpec({ name: intermediate, id: viaId, joinId: this.joinId });
+		var thenJoin  = new JoinSpec({ name: this.name, id: this.id, joinId: viaId, as: this.as });
 
-		var joinVia  = { name: intermediate, id: viaId, joinId: join.joinId };
-		var joinSpec = { joins: [joinVia] };
-
-		// Update current join so it joins via the intermediate table.
-		join.joinId = viaId;
-
-		// Join the intermediate to the current source, then join the
-		// current join to the intermediate using the stubbed joinSpec.
-
-		joins = joinOnce.call(this, spec, joinVia, joins, names);
-		joins = joinOnce.call(this, joinSpec, join, joins, names);
+		joins = firstJoin.toSQL(qb, joins, names, sourceJoin);
+		joins = thenJoin.toSQL(qb, joins, names, firstJoin);
 
 		return joins;
 	}
@@ -344,15 +356,15 @@ function joinOnce(spec, join, joins, names) {
 	// The "join" table is the table being joined. Similar to the
 	// source attributes above, we need the table name and defs.
 
-	var joinName = join.name;
-	var joinDef   = this.definitions[joinName];
+	var joinName = this.name;
+	var joinDef  = qb.definitions[joinName];
 
 	// But before naming the new model, we need to grab its alias
 	// and check whether it already exists in "names", the array
 	// of aliases that have already been used.
 
-	var joinAlias = join.as || joinDef.as;
-	var named = _.findWhere(names, { alias: joinAlias || joinName });
+	var joinAlias = this.as || joinDef.as;
+	var named     = _.findWhere(names, { alias: joinAlias || joinName });
 
 	// If joinAlias has already been used, make a new alias by
 	// appending an index to the old alias e.g. users_2.
@@ -364,50 +376,67 @@ function joinOnce(spec, join, joins, names) {
 		names.push({ alias: joinAlias || joinName, used: 1 });
 	}
 
-	join.model = this.models[joinName].as(joinAlias);
+	this.model = qb.models[joinName].as(joinAlias);
 
 	// Get keys for join. Default to primary key if source/target keys are not set.
 	var sourceKey = sourceDef.joins[joinName].source_key || sourceDef.primary_key;
 	var joinKey   = sourceDef.joins[joinName].target_key || joinDef.primary_key;
 
 	// Add a JOIN clause and return joins.
-	return joins.join(join.model).on(sourceJoin.model[sourceKey].equals(join.model[joinKey]));
+	return joins.join(this.model).on(sourceJoin.model[sourceKey].equals(this.model[joinKey]));
+};
+
+
+function Selects(selects) {
+	this.collection = selects.map(function(select) {
+		return new SelectSpec(select);
+	});
+	_.extend(this, new Collection(this));
 }
 
 
-
-// Add a SELECT clause for each field in spec.selects.
-function select(query, spec) {
+Selects.prototype.toSQL = function(query, qb) {
 	var that = this;
 
-	var selections = spec.selects.map(function(select, index) {
-		return selectOnce.call(that, spec, select, index);
-	});
-
-	selections.forEach(function(selection) {
+	var selections = this.each(function(select, index) {
+		var selection = select.toSQL(qb);
 		query.select(selection);
+		// return selectOnce.call(that, spec, select, index);
 	});
+};
+
+
+function SelectSpec(select) {
+	if (_.isString(select)) { select = { name: select }; }
+	if (_.isString(select.functions)) { select.functions = [select.functions]; }
+	if (_.isString(select.args)) { select.args = [select.args]; }
+	var properties = _.pick(select, ['functions', 'args', 'name', 'joinId', 'as']);
+	_.extend(this, properties);
 }
 
 
-// Return a single SELECT clause.
-function selectOnce(spec, select, index) {
+SelectSpec.prototype.toSQL = function(qb) {
 	var that = this;
 
 	// Lookup the model to be selected from in spec.joins.
 	// If no joinId, assume spec.joins[0] (the FROM table).
 
-	var join = _.findWhere(spec.joins, { id: select.joinId }) || spec.joins[0];
-	var def  = that.definitions[join.name].columns[select.name];
-	if (!def) { throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); }
+	var join = qb.spec.joins.findWhere({ id: this.joinId }) || qb.spec.joins.first();
+	var def  = qb.definitions[join.name].columns[this.name];
 
-	var alias = def.as;
+	if (!def) { 
+		throw Error('Column "' + select.name + '" not defined in "' + join.name + '".'); 
+	}
 
+	var alias     = def.as;
 	var selection = join.model[def.name];
-	if (!selection) { throw Error('Column "' + def.name + '" not defined in "' + join.name + '".'); }
 
-	select.functions = select.functions || [];
-	select.functions.reverse().forEach(function(func) {
+	if (!selection) { 
+		throw Error('Column "' + def.name + '" not defined in "' + join.name + '".'); 
+	}
+
+	this.functions = this.functions || [];
+	this.functions.reverse().forEach(function(func) {
 
 		// Cast func and args if given as string.
 		if (_.isString(func))      { func = { name: func };   }
@@ -417,8 +446,8 @@ function selectOnce(spec, select, index) {
 		func.args = func.args || [];
 
 		// Lookup from qb.functions if exists, else register new.
-		var funcDef = that.functions[func.name];
-		if (!funcDef) { funcDef = that.registerFunction(func.name); }
+		var funcDef = qb.functions[func.name];
+		if (!funcDef) { funcDef = qb.registerFunction(func.name); }
 
 		// Prefill arguments to funcDef if exists.
 		if (!_.isEmpty(func.args)) {
@@ -428,17 +457,30 @@ function selectOnce(spec, select, index) {
 		}
 
 		// Append function name as a suffix to "AS".
-		alias = (alias || select.name) + '_' + func.name.toLowerCase();
+		alias = (alias || that.name) + '_' + func.name.toLowerCase();
 		selection = funcDef(selection);
 	});
 
 	// Use alias defined in SELECT even if one was generated above.
-	alias = select.as || alias;
+	alias = this.as || alias;
 	if (alias) { selection = selection.as(alias); }
 
-	spec.selects[index].selection = selection;
+	this.selection = selection;
 	return selection;
+};
+
+
+function Wheres(wheres) {
+	this.collection = wheres.map(function(where) {
+		return new WhereSpec(where);
+	});
+	_.extend(this, new Collection(this));
 }
+
+Wheres.prototype.toSQL = function(query) {};
+
+
+function WhereSpec(where) {}
 
 
 // Apply where conditions and AND/OR logic.
