@@ -488,10 +488,23 @@ function Wheres(wheres) {
 	_.extend(this, new Collection(this));
 }
 
-Wheres.prototype.toSQL = function(query) {};
+Wheres.prototype.toSQL = function(query) {
+
+};
 
 
-function WhereSpec(where) {}
+function WhereSpec(where) {
+	var field = new SelectSpec(where.field);
+	var match = new SelectSpec(where.match);
+	var op    = where.op || where.operator || 'equals';
+	var properties = _.pick(select, ['field', 'match', 'op']);
+	_.extend(this, properties);
+}
+
+
+WhereSpec.prototype.toSQL = function(qb) {
+	
+};
 
 
 // Apply where conditions and AND/OR logic.
