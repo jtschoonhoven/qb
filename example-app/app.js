@@ -23,20 +23,34 @@
 	var Join = Backbone.Model.extend();
 
 	Join.prototype.setAttributes = function(input) {
-		var name   = input[0].value;
-		var joinId = input[0].joinId;
-		var as     = input[0].label;
-		this.set({ name: name, joinId: joinId, as: as });
+		this.set({
+			name   : input[0].value,
+			joinId : input[0].joinId,
+			as     : input[0].label
+		});
 	};
 
 
 	var Select = Backbone.Model.extend();
 
 	Select.prototype.setAttributes = function(input) {
-		var method = input[0].value;
-		var joinId = input[1].joinId;
-		var name   = input[1].value;
-		this.set({ functions: method, joinId: joinId, name: name });
+		this.set({
+			functions : input[0].value,
+			joinId    : input[1].joinId,
+			name      : input[1].value
+		});
+	};
+
+
+	var Where = Backbone.Model.extend();
+
+	Where.prototype.setAttributes = function(input) {
+		this.set({
+			field    : input[0].value,
+			joinId   : input[0].joinId,
+			operator : input[1].value,
+			value    : input[2].value
+		});
 	};
 
 
@@ -62,8 +76,9 @@
 
 	var tables = new Tables();
 
-	var Joins = Backbone.Collection.extend();
+	var Joins   = Backbone.Collection.extend();
 	var Selects = Backbone.Collection.extend();
+	var Wheres  = Backbone.Collection.extend();
 
 
 
@@ -99,6 +114,7 @@
 
 	// Call remove recursively on each childView and
 	// remove from parent collection.
+
 	Backbone.View.prototype.removeChildren = function() {
     _.each(this.childViews, function(child) {
       child.removeChildren();
@@ -159,6 +175,13 @@
 				collection: new Selects() 
 			});
 
+			// Fieldset of WHERE's, not rendered yet.
+			that.whereSet = new WhereSet({ 
+				el: '.wheres', 
+				isRoot: true,
+				collection: new Wheres() 
+			});
+
 		});
 	};
 
@@ -172,8 +195,9 @@
 
 		// Stringify collections for server.
 		var data = JSON.stringify({
-			joins: this.joinSet.collection.toJSON(),
-			selects: this.selectSet.collection.toJSON()
+			joins   : this.joinSet.collection.toJSON(),
+			selects : this.selectSet.collection.toJSON(),
+			wheres  : this.whereSet.collection.toJSON()
 		});
 
 		var req = $.post('/api/build', { data: data });
@@ -235,7 +259,7 @@
 		this.collection.remove(this.model);
 
 		var parentIsFieldset = this.parent instanceof Fieldset;
-		var parentIsEmpty = this.parent.childViews.length === 1;
+		var parentIsEmpty    = this.parent.childViews.length === 1;
 
 		if (parentIsFieldset && parentIsEmpty) {
 			return this.parent.removeChildren().remove(); 
@@ -340,6 +364,12 @@
 	});
 
 
+	var WhereView = InputView.extend({
+		template: require('./templates/where.jade'),
+		Model: Where
+	});
+
+
 
 	// Fieldset Views
 	// ==================================================
@@ -379,7 +409,6 @@
 		label: 'Include'
 	});
 
-
 	JoinSet.prototype.View = JoinSet;
 
 
@@ -388,15 +417,21 @@
 		label: 'Select'
 	});
 
-
 	SelectSet.prototype.listen = function() {
 		Fieldset.prototype.listen.call(this);
 		this.listenToOnce(qb.joinSet.collection, 'add', this.render);
 		this.listenTo(qb.joinSet.collection, 'add remove change', this.renderChildren);
 	};
 
-
 	SelectSet.prototype.View = SelectSet;
+
+
+	var WhereSet = Fieldset.extend({
+		ChildView: WhereView,
+		label: 'Filter'
+	});
+
+	WhereSet.prototype.View = WhereSet;
 
 
 

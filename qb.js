@@ -335,6 +335,8 @@ JoinSpec.prototype.toSQL = function(qb, joins, names, source) {
 		joins = firstJoin.toSQL(qb, joins, names, sourceJoin);
 		joins = thenJoin.toSQL(qb, joins, names, firstJoin);
 
+		this.model = thenJoin.model;
+
 		return joins;
 	}
 
