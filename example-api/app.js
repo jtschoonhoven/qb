@@ -53,7 +53,7 @@ app.post('/api/build', function(req, res) {
 	var spec = JSON.parse(req.body.data);
   var status = 'success';
 
-  var result = qb.query(spec).string;
+  var result = qb.query(spec).formatted;
   // try { var result = qb.query(spec); }
   // catch(err) {
   //   console.log(err);

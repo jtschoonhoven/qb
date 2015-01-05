@@ -3,16 +3,16 @@ div(class="form-group")
   - var labelText = isRoot ? 'Select:' : 'and:'
   label(class="col-sm-1 col-xs-2 control-label") #{labelText}
 
-  div(class="col-sm-3 col-xs-10")
-    select.select-1(name="aggregate" class="form-control")
+  div(class="col-sm-3 col-xs-12")
+    select(name="aggregate" class="form-control")
       each optgroup in functionsList
         optgroup(label=optgroup.group)
           each option in optgroup.options
             - var isSelected = model && model.get('functions') === option.value
             option(value=option.value selected=isSelected) #{option.label}
 
-  div(class="col-sm-6 col-sm-offset-0 col-xs-10 col-xs-offset-2")
-    select.select-2(name="model" class="form-control")
+  div(class="col-sm-6 col-xs-12")
+    select(name="model" class="form-control")
       option(disabled selected) ...
 
         - var joinable = qb.joinSet.collection.toJSON()
@@ -27,7 +27,7 @@ div(class="form-group")
               option(value=column.name data-join-id=join.id selected=isSelected) #{colAlias}
 
 
-  div(class="btn-group col-sm-2 col-sm-offset-0 col-xs-10 col-xs-offset-2 row")
+  div(class="btn-group col-sm-2 col-xs-12")
     if (isRoot && model)
       a.add-btn(href="#" class="btn btn-default")
         span(class="glyphicon glyphicon-plus")

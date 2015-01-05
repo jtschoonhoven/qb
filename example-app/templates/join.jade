@@ -3,7 +3,7 @@ div(class="form-group")
   - var labelText = isRoot ? 'Include:' : 'and:'
   label(class="col-sm-1 col-xs-12 control-label") #{labelText}
 
-  div(class="col-sm-3 col-xs-6")
+  div(class="col-sm-3 col-xs-12")
     select(name="model" class="form-control")
       option(disabled selected) something
 
@@ -23,7 +23,7 @@ div(class="form-group")
 
             option(value=joinable.name data-join-id=parent.model.id selected=isSelected) #{joinAlias}
 
-  div(class="btn-group col-sm-8 col-xs-6")
+  div(class="btn-group col-sm-8 col-xs-12")
 
     if (model)
       a.add-btn(href="#" class="btn btn-default")

@@ -41,15 +41,33 @@
 		});
 	};
 
+	Select.prototype.validate = function(attr) {
+		// Check that selected field exists in schema.
+		var join      = qb.joinSet.collection.get(attr.joinId);
+		var joinTable = tables.findWhere({ name: join ? join.get('name') : false });
+		var columns   = joinTable ? joinTable.get('columns') : [];
+		var selected  = _.findWhere(columns, { name: attr.name });
+		if (!selected) { return 'Invalid selection.'; }
+	};
+
 
 	var Where = Backbone.Model.extend();
 
 	Where.prototype.setAttributes = function(input) {
 		this.set({ 
 			field: { name: input[0].value, joinId: input[0].joinId }, 
-			operator: input[1].value, 
-			match: { value: input[2].value } 
+			operator: input[1].value || 'equals', 
+			match: { value: input[2].value || '' } 
 		});
+	};
+
+	Where.prototype.validate = function(attr) {
+		// Check that field exists in schema.
+		var join      = qb.joinSet.collection.get(attr.field.joinId);
+		var joinTable = tables.findWhere({ name: join ? join.get('name') : false });
+		var columns   = joinTable ? joinTable.get('columns') : [];
+		var selected  = _.findWhere(columns, { name: attr.field.name });
+		if (!selected) { return 'Invalid filter.'; }
 	};
 
 
@@ -159,6 +177,7 @@
 
 			// Create and render a JoinSet (a fieldset
 			// of JOIN inputs)
+
 			that.joinSet = new JoinSet({ 
 				el: '.joins', 
 				isRoot: true, 
@@ -168,6 +187,7 @@
 
 			// Construct a SelectSet (fieldset of SELECT
 			// inputs) but do not render it yet.
+
 			that.selectSet = new SelectSet({ 
 				el: '.selects', 
 				isRoot: true, 
@@ -175,6 +195,7 @@
 			});
 
 			// Fieldset of WHERE's, not rendered yet.
+
 			that.whereSet = new WhereSet({ 
 				el: '.wheres', 
 				isRoot: true,
@@ -191,6 +212,17 @@
 		var that = this;
 
 		if (!this.result) { this.result = new Result(); }
+
+		// Remove invalide models from collection.
+		this.selectSet.collection.each(function(select) {
+			var collection = that.selectSet.collection;
+			if (!select.isValid()) { collection.remove(select); }
+		});
+
+		this.whereSet.collection.each(function(where) {
+			var collection = that.whereSet.collection;
+			if (!where.isValid()) { collection.remove(where); }
+		});
 
 		// Stringify collections for server.
 		var data = JSON.stringify({
@@ -258,6 +290,15 @@
 	};
 
 
+	// When the joinSet updates, rebuild all models.
+	InputView.prototype.listen = function() {
+		var that = this;
+		this.listenTo(qb.joinSet.collection, 'add remove change', function() {
+			that.selectInput();
+		});
+	};
+
+
 	InputView.prototype.removeInput = function(e) {
 		e.stopImmediatePropagation();
 		this.removeChildren().remove();
@@ -301,7 +342,7 @@
 
 	// Create/set this.model from user selections in the DOM.
 	InputView.prototype.selectInput = function(e) {
-		e.stopImmediatePropagation();
+		if (e) { e.stopImmediatePropagation(); }
 		var that = this;
 
 		// Grab specified attributes from each input in form.
@@ -370,6 +411,8 @@
 		template: require('./templates/join.jade'),
 		Model: Join
 	});
+
+	JoinView.prototype.listen = function() {};
 
 
 	var SelectView = InputView.extend({

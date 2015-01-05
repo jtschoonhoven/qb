@@ -307,6 +307,10 @@ function JoinSpec(join) {
 JoinSpec.prototype.toSQL = function(qb, joins, names, source) {
 	var that = this;
 
+	// If joins is not yet defined, this is the first "join", i.e.
+	// the "FROM" table. Create a FROM clause with optional alias,
+	// add that alias to the "names" array and return.
+
 	if (!joins) {
 		var alias  = this.as || qb.definitions[this.name].as;
 		this.model = qb.models[this.name].as(alias);
@@ -319,6 +323,10 @@ JoinSpec.prototype.toSQL = function(qb, joins, names, source) {
 
 	var sourceJoin = source || qb.spec.joins.findWhere({ id: this.joinId }) || qb.spec.joins.first();
 	var sourceDef  = qb.definitions[sourceJoin.name];
+
+	if (!sourceDef.joins[this.name]) { 
+		throw Error('Table "' + this.name + '" has no defined join on "' + sourceDef.name + '".');
+	}
 
 	// Intermediate tables are joined through implicitly according
 	// to the "via" attribute in definitions. Intermediates sit
