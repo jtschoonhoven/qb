@@ -86,4 +86,37 @@ describe('where.test.js', function() {
 
   });
 
+
+  describe('Operator', function() {
+
+    var operators = { 
+      equal: '=', 
+      equals: '=',
+      notEqual: '<>',
+      notEquals: '<>',
+      like: 'LIKE',
+      notLike: 'NOT LIKE',
+      isNull: 'IS NULL',
+      isNotNull: 'IS NOT NULL',
+      gt: '>',
+      gte: '>=',
+      lt: '<',
+      lte: '<=',
+      ilike: 'ILIKE',
+      notIlike: 'NOT ILIKE'
+    };
+
+    for (var name in operators) {
+      var value = operators[name];
+      var sql   = 'SELECT "users"."id" FROM "users" WHERE ("users"."id" ' + value + ' 42)';
+      var spec  = { select: 'id', from: 'users', where: { field: 'id', op: name, match: { value: 42 } } };
+      var query = qb.query(spec);
+
+      it('"' + name + '" becomes "' + value + '"', function() {
+        expect(query.string).to.equal(sql);
+      });
+    }
+
+  });
+
 });
