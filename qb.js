@@ -254,6 +254,7 @@ function QuerySpec(spec) {
 	this.wheres  = new Wheres(wheres);
 }
 
+
 QuerySpec.prototype.toSQL = function(query, qb) {
 	this.joins.toSQL(query, qb);
 	this.selects.toSQL(query, qb);
@@ -263,31 +264,15 @@ QuerySpec.prototype.toSQL = function(query, qb) {
 
 function Collection(context) {
 	var that = context;
+	that.length = that.collection.length;
 
-	this.first = function() {
-		return that.collection[0];
-	};
-
-	this.at = function(index) {
-		return this.collection[index];
-	};
-
-	this.findWhere = function(keyValue) {
-		return _.findWhere(that.collection, keyValue);
-	};
-
-	this.length = function() {
-		return this.collection.length;
-	};
-
-	this.each = function(iterator) {
-		_.each(that.collection, iterator);
-		return that.collection;
-	};
-
-	this.map = function(iterator) {
-		return _.map(that.collection, iterator)
-	};
+	// Extend with underscore functions.
+	var functions = ['first', 'at', 'findWhere', 'each', 'map', 'rest'];
+	functions.forEach(function(func) {
+		that[func] = function(arg) { 
+			return _[func](that.collection, arg); 
+		};
+	});
 }
 
 
@@ -396,12 +381,9 @@ function Selects(selects) {
 
 
 Selects.prototype.toSQL = function(query, qb) {
-	var that = this;
-
-	var selections = this.each(function(select, index) {
+	this.each(function(select) {
 		var selection = select.toSQL(qb);
 		query.select(selection);
-		// return selectOnce.call(that, spec, select, index);
 	});
 };
 
@@ -482,59 +464,52 @@ SelectSpec.prototype.toSQL = function(qb) {
 
 
 function Wheres(wheres) {
+	if (!_.isArray(wheres)) { wheres = [wheres]; }
 	this.collection = wheres.map(function(where) {
 		return new WhereSpec(where);
 	});
 	_.extend(this, new Collection(this));
 }
 
-Wheres.prototype.toSQL = function(query) {
 
+Wheres.prototype.toSQL = function(query, qb) {
+	var filters = this.map(function(where) { 
+		return where.toSQL(qb);
+	});
+	if (query) { query.where(filters); }
+	return filters;
 };
 
 
 function WhereSpec(where) {
-	var field = new SelectSpec(where.field);
-	var match = new SelectSpec(where.match);
-	var op    = where.op || where.operator || 'equals';
-	var properties = _.pick(select, ['field', 'match', 'op']);
-	_.extend(this, properties);
+	if (where.field) { this.field = new SelectSpec(where.field); }
+	if (where.match) { this.match = new SelectSpec(where.match); }
+	if (where.or)    { this.or    = new Wheres(where.or); }
+	this.op = where.op || where.operator || 'equals';
 }
 
 
 WhereSpec.prototype.toSQL = function(qb) {
-	
+	var filter;
+
+	if (this.field && this.match) {
+		var field  = this.field.toSQL(qb);
+		var match  = this.match.toSQL(qb);
+		filter = field[this.op](match);
+	}
+
+	if (this.or) {
+		var ors     = this.or.toSQL(null, qb);
+		var first   = this.or.first().filter;
+		var rest    = this.or.rest().map(function(or) { return or.filter; });
+		
+		filter = filter ? filter.or(first) : first;
+		rest.forEach(function(or) { filter = filter.or(or); });
+	}
+
+	this.filter = filter;
+	return filter;
 };
-
-
-// Apply where conditions and AND/OR logic.
-function where(query, spec) {
-	var that  = this;
-// 	var model = this.models[spec.table];
-
-// 	spec.filters = spec.filters || [];
-
-// 	// "Where" is an outer array of AND conditions.
-// 	spec.filters.forEach(function(and) {
-// 		var orClauses = [];
-
-// 		// "And" is an inner array of OR conditions.
-// 		and.forEach(function(or) {
-// 			var model  = that.models[or.table];
-// 			var clause = model[or.field][or.operator](or.value);
-// 			orClauses.push(clause);
-// 		});
-
-// 		// Assemble a block or OR conditions from orClauses array.
-// 		var block;
-// 		if (orClauses.length > 1) { block = orClauses[0].or(orClauses.slice(1)); }
-// 		else { block = orClauses[0]; }
-
-// 		// Apply to query.
-// 		query.where(block);
-// 	});
-}
-
 
 
 // Add linebreaks before keywords.
