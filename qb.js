@@ -4,12 +4,9 @@ var _   = require('underscore');
 
 
 
-// =============
-// Query builder
-// =============
 
-
-
+// Query Builder
+// ================================================================
 // Create the root constructor function.
 // The models object contains models defined by the sql package.
 // The schema object is a map of the db structure.
@@ -27,6 +24,8 @@ function Qb(definitions, dialect) {
 }
 
 
+// Register Custom Functions
+// ================================================================
 // Extend SQL's functionCallCreator so that SQL functions may
 // be defined with arguments prefilled. This function is used
 // internally to register functions and is also exposed to
@@ -50,8 +49,9 @@ Qb.prototype.registerFunction = function(id, name) {
 
 
 
-// Define models and relationships.
-// This is done only once to configure the Qb instance.
+// Define Models & Relationships
+// ================================================================
+// This is done only once when constructing a new qb instance.
 
 Qb.prototype.define = function(definitions) {
 
@@ -76,6 +76,8 @@ Qb.prototype.define = function(definitions) {
 
 
 
+// Normalize Definitions
+// ================================================================
 // Users may define columns and joins in a few different
 // formats. Standardize formats and apply defaults.
 
@@ -164,7 +166,8 @@ Qb.prototype.normalize = function(definitions) {
 };
 
 
-
+// Build Schema
+// ================================================================
 // Create a map of the database (schema) that shows defined
 // tables in the DB and how to join them. Qb.schema is
 // meant to be exported for use by a service or end user.
@@ -204,8 +207,10 @@ Qb.prototype.buildSchema = function(definitions) {
 };
 
 
-
+// Create Query
+// ================================================================
 // Assemble query to spec. Returns a string of SQL.
+
 Qb.prototype.query = function(spec) {
 	var that = this;
 	this.spec = new QuerySpec(spec);
@@ -226,6 +231,9 @@ Qb.prototype.query = function(spec) {
 	return this.lastQuery;
 };
 
+
+// Query Spec Constructor
+// ================================================================
 
 function QuerySpec(spec) {
 	if (!_.isObject(spec)) {

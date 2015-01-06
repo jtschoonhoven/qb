@@ -16,11 +16,25 @@
 	// Each model represents a single SQL clause defined
 	// by the user. I.e. each SELECT, JOIN, WHERE, etc.
 	// is represented as a model in a Backbone
-	// collection. Each model gets a setAttributes
-	// function which parses user-defined input into
-	// the format required by Query Builder.
+	// collection.
 
-	var Join = Backbone.Model.extend();
+	var Join   = Backbone.Model.extend();
+	var Select = Backbone.Model.extend();
+	var Where  = Backbone.Model.extend();
+
+	// The "Table" model is a special case. It represents
+	// a table defined in the schema.
+
+	var Table = Backbone.Model.extend({
+		idAttribute: 'name',
+	});
+
+
+	// Set Attributes
+	// ==================================================
+	// Every time a user enters input, setAttribute is 
+	// called on the related model to apply data from the
+	// DOM to the model.
 
 	Join.prototype.setAttributes = function(input) {
 		this.set({
@@ -29,6 +43,32 @@
 			as     : input[0].label
 		});
 	};
+
+	Select.prototype.setAttributes = function(input) {
+		this.set({
+			functions : input[0].value || undefined,
+			joinId    : input[1].joinId,
+			name      : input[1].value
+		});
+	};
+
+	Where.prototype.setAttributes = function(input) {
+		this.set({ 
+			field: { name: input[0].value, joinId: input[0].joinId }, 
+			operator: input[1].value || 'equals', 
+			match: { value: input[2].value || '' } 
+		});
+	};
+
+
+
+	// Validation
+	// ==================================================
+	// It's easy to create invalid models with the UI, 
+	// usually by leaving a required field blank. Rather
+	// than display validation errors to the user, we
+	// just ignore any invalid models when building the 
+	// query.
 
 	Join.prototype.validate = function(attr) {
 		if (!attr.joinId) {
@@ -49,16 +89,6 @@
 	};
 
 
-	var Select = Backbone.Model.extend();
-
-	Select.prototype.setAttributes = function(input) {
-		this.set({
-			functions : input[0].value || undefined,
-			joinId    : input[1].joinId,
-			name      : input[1].value
-		});
-	};
-
 	Select.prototype.validate = function(attr) {
 		// Check that selected field exists in schema.
 		var join      = qb.joinSet.collection.get(attr.joinId);
@@ -69,16 +99,6 @@
 	};
 
 
-	var Where = Backbone.Model.extend();
-
-	Where.prototype.setAttributes = function(input) {
-		this.set({ 
-			field: { name: input[0].value, joinId: input[0].joinId }, 
-			operator: input[1].value || 'equals', 
-			match: { value: input[2].value || '' } 
-		});
-	};
-
 	Where.prototype.validate = function(attr) {
 		// Check that field exists in schema.
 		var join      = qb.joinSet.collection.get(attr.field.joinId);
@@ -87,12 +107,6 @@
 		var selected  = _.findWhere(columns, { name: attr.field.name });
 		if (!selected) { return 'Invalid filter.'; }
 	};
-
-
-	var Table = Backbone.Model.extend({
-		idAttribute: 'name',
-		defaults: { name: undefined, as: undefined, columns: [], joins: [] }
-	});
 
 
 
@@ -124,7 +138,7 @@
 
 	// Default init behavior. Listen() is a recyclable
 	// function meant to contain event listener setup.
-	
+
 	Backbone.View.prototype.initialize = function(params) {
 		_.extend(this, params);
 		this.childViews = [];
