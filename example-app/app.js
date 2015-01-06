@@ -30,6 +30,24 @@
 		});
 	};
 
+	Join.prototype.validate = function(attr) {
+		if (!attr.joinId) {
+			// Assume isRoot. Check that table exists in schema.
+			var join = tables.findWhere({ name: attr.name });
+			if (!join) { return 'Invalid join'; }
+		}
+
+		else {
+			// Check exists in schema & can be joined from source.
+			var join   = qb.joinSet.collection.get(attr.joinId);
+			var name   = join ? join.get('name') : false;
+			var table  = tables.findWhere({ name: name });
+			var joins  = table ? table.get('joins') : false;
+			var joined = _.findWhere(joins || [], { name: attr.name });
+			if (!joined) { return 'Invalid join.'; }
+		} 
+	};
+
 
 	var Select = Backbone.Model.extend();
 
@@ -106,6 +124,7 @@
 
 	// Default init behavior. Listen() is a recyclable
 	// function meant to contain event listener setup.
+	
 	Backbone.View.prototype.initialize = function(params) {
 		_.extend(this, params);
 		this.childViews = [];
@@ -213,15 +232,11 @@
 
 		if (!this.result) { this.result = new Result(); }
 
-		// Remove invalide models from collection.
-		this.selectSet.collection.each(function(select) {
-			var collection = that.selectSet.collection;
-			if (!select.isValid()) { collection.remove(select); }
-		});
-
-		this.whereSet.collection.each(function(where) {
-			var collection = that.whereSet.collection;
-			if (!where.isValid()) { collection.remove(where); }
+		// Validate each collection and remove invalid models.
+		_.each([this.joinSet, this.selectSet, this.whereSet], function(set) {
+			set.collection.each(function(model) {
+				if (!model.isValid()) { set.collection.remove(model); }
+			});
 		});
 
 		// Stringify collections for server.
@@ -357,16 +372,16 @@
 			selected[i] = selection;
 		});
 
-		// Create this.model if not exists.
-		if (!this.model) { 
-			this.model = new this.Model({ id: Number(_.uniqueId()) }); 
+		var model = this.model;
+
+		if (!model) { model = new this.Model({ id: Number(_.uniqueId()) }); }
+		model.setAttributes(selected);
+
+		if (model.isValid()) {
+			this.model = model;
+			this.collection.add(model);
 		}
 
-		// setAttributes is a function that parses input from form
-		// and sets attributes on this.model.
-		this.model.setAttributes(selected);
-
-		this.collection.add(this.model);
 		this.render();
 	};
 
@@ -411,8 +426,6 @@
 		template: require('./templates/join.jade'),
 		Model: Join
 	});
-
-	JoinView.prototype.listen = function() {};
 
 
 	var SelectView = InputView.extend({
