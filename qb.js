@@ -494,7 +494,7 @@ function Wheres(wheres) {
 
 
 Wheres.prototype.toSQL = function(query, qb) {
-	var filters = this.map(function(where) { 
+	var filters = this.map(function(where) {
 		var filter = where.toSQL(qb);
 		if (query) { query.where(filter); }
 		return filter;

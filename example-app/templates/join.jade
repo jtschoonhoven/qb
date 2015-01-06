@@ -29,7 +29,7 @@ div(class="form-group")
       a.add-btn(href="#" class="btn btn-default")
         span(class="glyphicon glyphicon-plus")
 
-    if (!isRoot)
+    if (parent.model)
       a.remove-btn(href="#" class="btn btn-default")
         span(class="glyphicon glyphicon-minus")
 

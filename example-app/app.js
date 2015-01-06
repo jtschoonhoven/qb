@@ -177,9 +177,10 @@
 
 	// Call render on this and every childView in array.
 	Backbone.View.prototype.renderChildren = function() {
+		var that = this;
     _.each(this.childViews, function(child) {
-      child.renderChildren();
-      Backbone.View.prototype.render.call(child);
+      child.render().$el.appendTo(that.$('.content').first());
+      child.renderChildren.call(child);
     });
     return this;
 	};
@@ -271,6 +272,8 @@
 			return that.result.render();
 		}
 
+		console.log(this.joinSet.collection.toJSON())
+
 		var req = $.post('/api/build', { data: data });
 
 		// On successful POST.
@@ -357,13 +360,12 @@
 
 		if (!this.isRoot) {
 			var fieldset = new this.ParentView({ 
-				el: this.$('.content'),
 				collection: this.collection, 
 				model: this.model,
-				isRoot: true,
+				isRoot: true
 			});
 			this.childViews.push(fieldset);
-			return fieldset.render();
+			return fieldset.render().$el.appendTo(this.$('.content').first());
 		}
 
 		var siblingView = new this.View({
@@ -407,6 +409,7 @@
 		}
 
 		this.render();
+		this.renderChildren();
 	};
 
 
@@ -473,6 +476,9 @@
 	});
 
 
+	// When fieldset is rendered, rerender or create
+	// child view(s).
+
 	Fieldset.prototype.listen = function() {
 		var that = this;
 		this.listenTo(this, 'render', function() {
@@ -492,8 +498,7 @@
 			});
 
 			that.childViews.push(childView);
-			var targetEl = that.$('.content').first();
-			childView.render().$el.appendTo(targetEl);
+			childView.render().$el.appendTo(that.$('.content').first());
 		});
 	};
 
