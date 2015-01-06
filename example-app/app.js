@@ -34,7 +34,8 @@
 	// ==================================================
 	// Every time a user enters input, setAttribute is 
 	// called on the related model to apply data from the
-	// DOM to the model.
+	// DOM to the model. input[0] is the leftmost select
+	// element, input[1] is adjacent, etc.
 
 	Join.prototype.setAttributes = function(input) {
 		this.set({
@@ -118,16 +119,14 @@
 	// populated locally with a fetch(). It is a map of 
 	// the db, primarily used to join tables.
 
-	var Tables = Backbone.Collection.extend({
-		model: Table,
-		url: '/api/schema'
-	});
-
-	var tables = new Tables();
-
 	var Joins   = Backbone.Collection.extend();
 	var Selects = Backbone.Collection.extend();
 	var Wheres  = Backbone.Collection.extend();
+	var Tables  = Backbone.Collection.extend({
+		model: Table, url: '/api/schema'
+	});
+
+	var tables = new Tables();
 
 
 
@@ -212,8 +211,8 @@
 			// of JOIN inputs)
 
 			that.joinSet = new JoinSet({ 
-				el: '.joins', 
-				isRoot: true, 
+				el: '.joins',
+				isRoot: true,
 				collection: new Joins(),
 			});
 			that.joinSet.render();
@@ -222,21 +221,26 @@
 			// inputs) but do not render it yet.
 
 			that.selectSet = new SelectSet({ 
-				el: '.selects', 
-				isRoot: true, 
-				collection: new Selects() 
+				el: '.selects',
+				isRoot: true,
+				collection: new Selects()
 			});
 
 			// Fieldset of WHERE's, not rendered yet.
-
-			that.whereSet = new WhereSet({ 
-				el: '.wheres', 
+			that.whereSet = new WhereSet({
+				el: '.wheres',
 				isRoot: true,
-				collection: new Wheres() 
+				collection: new Wheres(),
+				ChildView: WhereSet // Nest inside self on render
 			});
 
 		});
 	};
+
+
+	// Build SQL
+	// ==================================================
+	// Submit collections to server and display result.
 
 
 	// Submit form and fetch SQL from server.
@@ -260,6 +264,13 @@
 			wheres  : this.whereSet.collection.toJSON()
 		});
 
+		// Don't submit query if joins collection is empty.
+		if (this.joinSet.collection.isEmpty()) {
+			that.result.status = 'error';
+			that.result.result = 'Query includes no tables.';
+			return that.result.render();
+		}
+
 		var req = $.post('/api/build', { data: data });
 
 		// On successful POST.
@@ -273,8 +284,6 @@
 			that.result.status = 'browserOnly';
 			that.result.render();
 		});
-
-		this.result.render();
 	};
 
 
@@ -353,6 +362,7 @@
 				model: this.model,
 				isRoot: true,
 			});
+			this.childViews.push(fieldset);
 			return fieldset.render();
 		}
 
@@ -478,7 +488,7 @@
 				ParentView: that.View,
 				isRoot: that.isRoot,
 				parent: that,
-				collection: that.collection,
+				collection: that.collection
 			});
 
 			that.childViews.push(childView);

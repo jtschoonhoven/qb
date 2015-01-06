@@ -1,11 +1,12 @@
 
 div(class="form-group")
-  - var labelText = isRoot ? 'Filter:' : 'or:'
-  label(class="col-sm-1 col-xs-2 control-label") #{labelText}
+  - var labelText = isRoot ? 'Filter:' : 'and:'
+  label(class="col-sm-1 col-xs-12 control-label") #{labelText}
 
-  div(class="col-sm-4 col-sm-offset-0 col-xs-10 col-xs-offset-2")
+
+  div(class="col-sm-3 col-xs-12")
     select(name="model" class="form-control")
-      option(disabled selected) ...
+      option(selected) No filter
 
         - var joinable = qb.joinSet.collection.toJSON()
         each join in joinable
@@ -19,13 +20,25 @@ div(class="form-group")
               option(value=column.name data-join-id=join.id selected=isSelected) #{colAlias}
 
 
-  div(class="col-sm-2 col-xs-10")
+  div(class="col-sm-3 col-xs-12")
     select(name="operator" class="form-control")
       each op in operators
         - var isSelected = model && model.get('operator') === op.value
         option(value=op.value selected=isSelected) #{op.label}
 
 
-  div(class="col-sm-4 col-xs-10")
+  div(class="col-sm-3 col-xs-12")
     - var value = model ? model.get('match').value : ''
     input(type="text" name="match" class="form-control" value=value)
+
+
+  div(class="btn-group col-sm-2 col-xs-12")
+    if (isRoot && model)
+      a.add-btn(href="#" class="btn btn-default")
+        span(class="glyphicon glyphicon-plus")
+        
+    if !isRoot
+      a.remove-btn(href="#" class="btn btn-default")
+        span(class="glyphicon glyphicon-minus")
+
+.content
