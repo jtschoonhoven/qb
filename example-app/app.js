@@ -231,8 +231,7 @@
 			that.whereSet = new WhereSet({
 				el: '.wheres',
 				isRoot: true,
-				collection: new Wheres(),
-				ChildView: WhereSet // Nest inside self on render
+				collection: new Wheres()
 			});
 
 		});
