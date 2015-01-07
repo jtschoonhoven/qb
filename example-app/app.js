@@ -257,13 +257,6 @@
 			});
 		});
 
-		// Stringify collections for server.
-		var data = JSON.stringify({
-			joins   : this.joinSet.collection.toJSON(),
-			selects : this.selectSet.collection.toJSON(),
-			wheres  : this.whereSet.collection.toJSON()
-		});
-
 		// Don't submit query if joins collection is empty.
 		if (this.joinSet.collection.isEmpty()) {
 			that.result.status = 'error';
@@ -271,7 +264,16 @@
 			return that.result.render();
 		}
 
-		var req = $.post('/api/build', { data: data });
+		// Build query object 
+		this.query = {
+			joins   : this.joinSet.collection.toJSON(),
+			selects : this.selectSet.collection.toJSON(),
+			wheres  : this.whereSet.collection.toJSON()
+		};
+
+		// Post stringified data to server.
+		var queryString = JSON.stringify(this.query);
+		var req = $.post('/api/build', { data: queryString });
 
 		// On successful POST.
 		req.done(function(res) {
@@ -353,8 +355,7 @@
 
 	// Add a new input group to the DOM.
 	InputView.prototype.addInput = function(e) {
-		// e.stopPropagation();
-		console.log(this.el)
+		e.stopImmediatePropagation();
 
 		// If this is the top view in a fieldset.
 		if (this.isRoot) {
@@ -411,6 +412,7 @@
 
 		this.render();
 		this.renderChildren();
+		this.delegateEvents(this.events);
 	};
 
 
