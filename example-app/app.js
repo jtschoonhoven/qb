@@ -271,8 +271,6 @@
 			return that.result.render();
 		}
 
-		console.log(this.joinSet.collection.toJSON())
-
 		var req = $.post('/api/build', { data: data });
 
 		// On successful POST.
@@ -355,28 +353,32 @@
 
 	// Add a new input group to the DOM.
 	InputView.prototype.addInput = function(e) {
-		e.stopImmediatePropagation();
+		// e.stopPropagation();
+		console.log(this.el)
 
-		if (!this.isRoot) {
-			var fieldset = new this.ParentView({ 
-				collection: this.collection, 
-				model: this.model,
-				isRoot: true
+		// If this is the top view in a fieldset.
+		if (this.isRoot) {
+			var siblingView = new this.View({
+				ParentView: this.ParentView,
+				View: this.View,
+				parent: this,
+				collection: this.collection
 			});
-			this.childViews.push(fieldset);
-			return fieldset.render().$el.appendTo(this.$('.content').first());
+
+			var targetEl = this.parent.$('.content').first();
+			this.parent.childViews.push(siblingView);
+			return siblingView.render().$el.appendTo(targetEl);
 		}
 
-		var siblingView = new this.View({
-			ParentView: this.ParentView,
-			View: this.View, 
-			parent: this, 
-			collection: this.collection
+		// If this is *not* the top level view.
+		var fieldset = new this.ParentView({
+			collection: this.collection,
+			model: this.model,
+			parent: this
 		});
 
-		var targetEl = this.parent.$('.content').first();
-		siblingView.render().$el.appendTo(targetEl);
-		this.parent.childViews.push(siblingView);
+		this.childViews.push(fieldset);
+		fieldset.render().$el.appendTo(this.$('.content').first());
 	};
 
 
@@ -488,10 +490,10 @@
 			}
 
 			// Else create a new childView and render it.
-			var childView = new that.ChildView({ 
+			var childView = new that.ChildView({
 				View: that.ChildView,
 				ParentView: that.View,
-				isRoot: that.isRoot,
+				isRoot: true,
 				parent: that,
 				collection: that.collection
 			});
