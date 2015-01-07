@@ -322,7 +322,7 @@ JoinSpec.prototype.toSQL = function(qb, joins, names, source) {
 	if (!joins) {
 		var alias  = this.as || qb.definitions[this.name].as;
 		this.model = qb.models[this.name].as(alias);
-		names      = [{ alias: alias || this.name, used: 1 }];
+		names.push({ alias: alias || this.name, used: 1 });
 		return this.model;
 	}
 

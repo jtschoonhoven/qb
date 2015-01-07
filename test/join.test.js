@@ -87,6 +87,28 @@ describe('join.test.js', function() {
   });
 
 
+  describe.only('Join a table on itself', function() {
+
+    var def = { users: { as: 'Users', columns: ['id', 'friend_id'], joins: { users: { source_key: 'friend_id' } } } };
+    var qb  = new Qb(def);
+
+    it('without alias', function() {
+      var spec  = { select: 'id', from: 'users', join: 'users' };
+      var sql   = 'SELECT "Users"."id" FROM "users" AS "Users" INNER JOIN "users" AS "Users_2" ON ("Users"."friend_id" = "Users_2"."id")';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+    it('with alias', function() {
+      var spec  = { select: 'id', from: 'users', join: { name: 'users', as: 'Friends' } };
+      var sql   = 'SELECT "Users"."id" FROM "users" AS "Users" INNER JOIN "users" AS "Friends" ON ("Users"."friend_id" = "Friends"."id")';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+  });
+
+
   describe('Define an alias for the JOIN table', function() {
 
     var sql = 'SELECT "Posts"."id" FROM "users" INNER JOIN "posts" AS "Posts" ON ("users"."postId" = "Posts"."id")';
