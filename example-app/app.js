@@ -161,15 +161,33 @@
 	Backbone.View.prototype.listen = function() {};
 
 
+	// Overwrite default remove function so that it also
+	// removes models from collections and self from parent.
+
+	Backbone.View.prototype.remove = function() {
+		if (this.model && this.collection) {
+			this.collection.remove(this.model);
+		}
+
+		if (this.parent) {
+			var index = this.parent.childViews.indexOf(this);
+			this.parent.childViews.splice(index, 1);
+		}
+
+		this.$el.remove();
+		this.stopListening();
+		return this;
+	};
+
+
 	// Call remove recursively on each childView and
 	// remove from parent collection.
 
 	Backbone.View.prototype.removeChildren = function() {
     _.each(this.childViews, function(child) {
       child.removeChildren();
-      child.collection.remove(child.model);
-      Backbone.View.prototype.remove.call(child);
     });
+    this.remove();
     this.childViews = [];
     return this;
 	};
@@ -342,13 +360,13 @@
 	InputView.prototype.removeInput = function(e) {
 		e.stopImmediatePropagation();
 		this.removeChildren().remove();
-		this.collection.remove(this.model);
+		console.log(this.collection)
 
 		var parentIsFieldset = this.parent instanceof Fieldset;
-		var parentIsEmpty    = this.parent.childViews.length === 1;
+		var parentIsEmpty    = _.isEmpty(this.parent.childViews);
 
 		if (parentIsFieldset && parentIsEmpty) {
-			return this.parent.removeChildren().remove(); 
+			this.parent.remove();
 		}
 	};
 
