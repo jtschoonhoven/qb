@@ -164,6 +164,7 @@
 	Backbone.View.prototype.render = function() {
 		this.$el.html(this.template(this));
 		this.trigger('render');
+		this.delegateEvents(this.events);
 		return this;
 	};
 
@@ -181,6 +182,7 @@
 		}
 
 		if (this.parent) {
+			console.log(this.parent)
 			var index = this.parent.childViews.indexOf(this);
 			this.parent.childViews.splice(index, 1);
 		}
@@ -370,7 +372,6 @@
 	InputView.prototype.removeInput = function(e) {
 		e.stopImmediatePropagation();
 		this.removeChildren().remove();
-		console.log(this.collection)
 
 		var parentIsFieldset = this.parent instanceof Fieldset;
 		var parentIsEmpty    = _.isEmpty(this.parent.childViews);
@@ -395,19 +396,20 @@
 			});
 
 			var targetEl = this.parent.$('.content').first();
-			this.parent.childViews.push(siblingView);
-			return siblingView.render().$el.appendTo(targetEl);
+			this.childViews.push(siblingView);
+			siblingView.render().$el.appendTo(targetEl);
 		}
 
-		// If this is *not* the top level view.
-		var fieldset = new this.ParentView({
-			collection: this.collection,
-			model: this.model,
-			parent: this
-		});
+		else {
+			var fieldset = new this.ParentView({
+				collection: this.collection,
+				model: this.model,
+				parent: this
+			});
 
-		this.childViews.push(fieldset);
-		fieldset.render().$el.appendTo(this.$('.content').first());
+			this.childViews.push(fieldset);
+			fieldset.render().$el.appendTo(this.$('.content').first());
+		}
 	};
 
 
@@ -428,9 +430,7 @@
 			this.collection.add(model);
 		}
 
-		this.render();
-		this.renderChildren();
-		this.delegateEvents(this.events);
+		this.render().renderChildren();
 	};
 
 
