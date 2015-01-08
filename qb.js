@@ -241,25 +241,28 @@ function QuerySpec(spec) {
 	}
 
 	// Specs may be named in plural or singular form.
-	var joins   = spec.joins   || spec.join   || [];
-	var selects = spec.selects || spec.select || [];
-	var wheres  = spec.wheres  || spec.where  || [];
+	this.joins    = spec.joins    || spec.join    || [];
+	this.selects  = spec.selects  || spec.select  || [];
+	this.wheres   = spec.wheres   || spec.where   || [];
+	this.groupBys = spec.groupBys || spec.groupBy || [];
 
 	// Force specs to array.
-	if (!_.isArray(joins))   { joins   = [joins]; }
-	if (!_.isArray(selects)) { selects = [selects]; }
-	if (!_.isArray(wheres))  { wheres  = [wheres]; }
+	if (!_.isArray(this.joins))     { this.joins     = [this.joins]; }
+	if (!_.isArray(this.selects))   { this.selects   = [this.selects]; }
+	if (!_.isArray(this.wheres))    { this.wheres    = [this.wheres]; }
+	if (!_.isArray(this.groupBys))  { this.groupBys  = [this.groupBts]; }
 
 	// Syntactic sugar allows first join to have special key "from".
-	if (spec.from) { joins.unshift(spec.from); }
+	if (spec.from) { this.joins.unshift(spec.from); }
 
-	if (joins.length === 0) {
+	if (this.joins.length === 0) {
 		throw Error('No FROM table was specified.');
 	}
 
-	this.joins   = new Joins(joins);
-	this.selects = new Selects(selects);
-	this.wheres  = new Wheres(wheres);
+	this.selects   = new Selects(this.selects, this);
+	this.joins     = new Joins(this.joins, this);
+	this.wheres    = new Wheres(this.wheres, this);
+	this.groupBys  = new GroupBys(this.groupBys, this);
 }
 
 
@@ -267,6 +270,7 @@ QuerySpec.prototype.toSQL = function(query, qb) {
 	this.joins.toSQL(query, qb);
 	this.selects.toSQL(query, qb);
 	this.wheres.toSQL(query, qb);
+	this.groupBys.toSQL(query, qb);
 };
 
 
@@ -284,9 +288,9 @@ function Collection(context) {
 }
 
 
-function Joins(joins) {
+function Joins(joins, spec) {
 	this.collection = joins.map(function(join) {
-		return new JoinSpec(join);
+		return new JoinSpec(join, spec);
 	});
 	_.extend(this, new Collection(this));
 }
@@ -305,7 +309,7 @@ Joins.prototype.toSQL = function(query, qb) {
 };
 
 
-function JoinSpec(join) {
+function JoinSpec(join, spec) {
 	if (_.isString(join)) { join = { name: join }; }
 	var properties = _.pick(join, ['id', 'name', 'as', 'joinId']);
 	_.extend(this, properties);
@@ -390,9 +394,9 @@ JoinSpec.prototype.toSQL = function(qb, joins, names, source) {
 };
 
 
-function Selects(selects) {
+function Selects(selects, spec) {
 	this.collection = selects.map(function(select) {
-		return new SelectSpec(select);
+		return new SelectSpec(select, spec);
 	});
 	_.extend(this, new Collection(this));
 }
@@ -406,10 +410,17 @@ Selects.prototype.toSQL = function(query, qb) {
 };
 
 
-function SelectSpec(select) {
+function SelectSpec(select, spec) {
+
+	// Convert string properties to objects.
 	if (_.isString(select)) { select = { name: select }; }
 	if (_.isString(select.functions)) { select.functions = [select.functions]; }
 	if (_.isString(select.args)) { select.args = [select.args]; }
+
+	// Pass off GROUP BYs to their own collection.
+	if (select.groupBy) { spec.groupBys.push(select); }
+
+	// Apply whitelisted properties to instance.
 	var properties = _.pick(select, ['functions', 'args', 'name', 'joinId', 'as', 'value']);
 	_.extend(this, properties);
 }
@@ -484,10 +495,10 @@ SelectSpec.prototype.toSQL = function(qb, ignoreAlias) {
 };
 
 
-function Wheres(wheres) {
+function Wheres(wheres, spec) {
 	if (!_.isArray(wheres)) { wheres = [wheres]; }
 	this.collection = wheres.map(function(where) {
-		return new WhereSpec(where);
+		return new WhereSpec(where, spec);
 	});
 	_.extend(this, new Collection(this));
 }
@@ -503,9 +514,9 @@ Wheres.prototype.toSQL = function(query, qb) {
 };
 
 
-function WhereSpec(where) {
-	if (where.field) { this.field = new SelectSpec(where.field); }
-	if (where.match) { this.match = new SelectSpec(where.match); }
+function WhereSpec(where, spec) {
+	if (where.field) { this.field = new SelectSpec(where.field, spec); }
+	if (where.match) { this.match = new SelectSpec(where.match, spec); }
 	if (where.or)    { this.or    = new Wheres(where.or); }
 	this.op = where.op || where.operator || 'equals';
 }
@@ -521,9 +532,9 @@ WhereSpec.prototype.toSQL = function(qb) {
 	}
 
 	if (this.or) {
-		var ors     = this.or.toSQL(null, qb);
-		var first   = this.or.first().filter;
-		var rest    = this.or.rest().map(function(or) { return or.filter; });
+		var ors   = this.or.toSQL(null, qb);
+		var first = this.or.first().filter;
+		var rest  = this.or.rest().map(function(or) { return or.filter; });
 		
 		filter = filter ? filter.or(first) : first;
 		rest.forEach(function(or) { filter = filter.or(or); });
@@ -531,6 +542,33 @@ WhereSpec.prototype.toSQL = function(qb) {
 
 	this.filter = filter;
 	return filter;
+};
+
+
+
+function GroupBys(groupBys, spec) {
+	this.collection = groupBys.map(function(groupBy) {
+		return new GroupBySpec(groupBy, spec);
+	});
+	_.extend(this, new Collection(this));
+}
+
+
+GroupBys.prototype.toSQL = function(query, qb) {
+	var groups = this.map(function(groupBy) {
+		return groupBy.toSQL(qb);
+	});
+	if (!_.isEmpty(groups)) { query.group(groups); }
+};
+
+
+function GroupBySpec(groupBy, spec) {
+	this.selection = new SelectSpec(groupBy, spec);
+}
+
+
+GroupBySpec.prototype.toSQL = function(qb) {
+	return this.selection.toSQL(qb, 'ignoreAlias');
 };
 
 

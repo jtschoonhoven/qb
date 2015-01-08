@@ -3,14 +3,6 @@ div(class="form-group")
   - var labelText = isRoot ? 'Select:' : 'and:'
   label(class="col-sm-1 col-xs-2 control-label") #{labelText}
 
-  div(class="col-sm-3 col-xs-12")
-    select(name="aggregate" class="form-control")
-      each optgroup in functionsList
-        optgroup(label=optgroup.group)
-          each option in optgroup.options
-            - var isSelected = model && model.get('functions') === option.value
-            option(value=option.value selected=isSelected) #{option.label}
-
   div(class="col-sm-6 col-xs-12")
     select(name="model" class="form-control")
       option(disabled selected) ...
@@ -25,6 +17,15 @@ div(class="form-group")
               - var isSelected = model && model.get('joinId') === join.id && model.get('name') === column.name
               - var colAlias = column.as || column.name;
               option(value=column.name data-join-id=join.id selected=isSelected) #{colAlias}
+
+
+  div(class="col-sm-3 col-xs-12")
+    select(name="aggregate" class="form-control")
+      each optgroup in functionsList
+        optgroup(label=optgroup.group)
+          each option in optgroup.options
+            - var isSelected = model && model.get('functions') === option.value
+            option(value=option.value selected=isSelected) #{option.label}
 
 
   div(class="btn-group col-sm-2 col-xs-12")

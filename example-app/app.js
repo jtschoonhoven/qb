@@ -47,9 +47,9 @@
 
 	Select.prototype.setAttributes = function(input) {
 		this.set({
-			functions : input[0].value || undefined,
-			joinId    : input[1].joinId,
-			name      : input[1].value
+			joinId    : input[0].joinId,
+			name      : input[0].value,
+			functions : input[1].value || undefined
 		});
 	};
 

@@ -87,7 +87,7 @@ describe('join.test.js', function() {
   });
 
 
-  describe.only('Join a table on itself', function() {
+  describe('Join a table on itself', function() {
 
     var def = { users: { as: 'Users', columns: ['id', 'friend_id'], joins: { users: { source_key: 'friend_id' } } } };
     var qb  = new Qb(def);
