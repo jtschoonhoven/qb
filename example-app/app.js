@@ -34,30 +34,41 @@
 	// ==================================================
 	// Every time a user enters input, setAttribute is 
 	// called on the related model to apply data from the
-	// DOM to the model. input[0] is the leftmost select
-	// element, input[1] is adjacent, etc.
+	// DOM to the model. "Selection" is a jquery selector
+	// for a row of inputs/selects.
 
-	Join.prototype.setAttributes = function(input) {
+	// var selection = {
+	// 	value  : $(this).val(),
+	// 	label  : this.options ? $(this.options[this.selectedIndex]).text() : undefined,
+	// 	joinId : this.options ? $(this.options[this.selectedIndex]).data('join-id') : undefined,
+	// 	group  : this.options ? $(this.options[this.selectedIndex]).closest('optgroup').prop('label') : undefined
+	// };
+
+	Join.prototype.setAttributes = function(selection) {
 		this.set({
-			name   : input[0].value,
-			joinId : input[0].joinId,
-			as     : input[0].label
+			name   : $(selection[0]).val(),
+			joinId : $(selection[0].options[selection[0].selectedIndex]).data('join-id'),
+			as     : $(selection[0].options[selection[0].selectedIndex]).text()
 		});
 	};
 
-	Select.prototype.setAttributes = function(input) {
+	Select.prototype.setAttributes = function(selection) {
 		this.set({
-			joinId    : input[0].joinId,
-			name      : input[0].value,
-			functions : input[1].value || undefined
+			joinId    : $(selection[0].options[selection[0].selectedIndex]).data('join-id'),
+			name      : $(selection[0]).val(),
+			functions : $(selection[1]).val() || undefined,
+			groupBy   : $(selection[2]).is(':checked')
 		});
 	};
 
-	Where.prototype.setAttributes = function(input) {
+	Where.prototype.setAttributes = function(selection) {
 		this.set({ 
-			field: { name: input[0].value, joinId: input[0].joinId }, 
-			operator: input[1].value || 'equals', 
-			match: { value: input[2].value || '' } 
+			field: {
+				name   : $(selection[0]).val(),
+				joinId : $(selection[0].options[selection[0].selectedIndex]).data('join-id')
+			}, 
+			operator: $(selection[1]).val() || 'equals', 
+			match: { value: $(selection[2]).val() || '' } 
 		});
 	};
 
@@ -214,7 +225,6 @@
 	var QueryBuilder = Backbone.View.extend({
 		el: '#app-goes-here',
 		template: require('./templates/query-builder.jade'),
-		alert: require('./templates/browserOnly.jade'),
 		events: { 'submit': 'build', 'click .add-filter': 'addFilter' }
 	});
 
@@ -406,22 +416,12 @@
 		if (e) { e.stopImmediatePropagation(); }
 		var that = this;
 
-		// Grab specified attributes from each input in form.
-		var selected = {};
-		this.$('select, input').each(function(i) {
-			var selection = {
-				value  : $(this).val(),
-				label  : this.options ? $(this.options[this.selectedIndex]).text() : undefined,
-				joinId : this.options ? $(this.options[this.selectedIndex]).data('join-id') : undefined,
-				group  : this.options ? $(this.options[this.selectedIndex]).closest('optgroup').prop('label') : undefined
-			};
-			selected[i] = selection;
-		});
 
 		var model = this.model;
-
 		if (!model) { model = new this.Model({ id: Number(_.uniqueId()) }); }
-		model.setAttributes(selected);
+
+		var selections = this.$('select, input');
+		model.setAttributes(selections);
 
 		if (model.isValid()) {
 			this.model = model;
