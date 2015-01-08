@@ -1,8 +1,8 @@
 {
   "name": "qb",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Define models and associations and let your QB write your SQL.",
-  "main": "qb.js",
+  "main": "lib/",
   "scripts": {
     "test": "mocha"
   },
@@ -11,6 +11,9 @@
     "url": "https://github.com/jtschoonhoven/qb"
   },
   "keywords": [
+    "query",
+    "query builder",
+    "sql builder",
     "sql",
     "postgresql",
     "postgres",

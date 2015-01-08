@@ -35,7 +35,7 @@ app.use(express.static(path.join(__dirname, '../')));
 // ==================================================
 
 var definitions = require('../example-definitions');
-var Qb = require('../qb');
+var Qb = require('../lib');
 var qb = new Qb(definitions, 'postgres');
 
 // Register custom functions.

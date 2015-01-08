@@ -2,7 +2,7 @@
 var mocha   = require('mocha')
 ,   expect  = require('chai').expect
 ,   _       = require('underscore')
-,   Qb      = require('../qb');
+,   Qb      = require('../lib');
 
 describe('define.test.js', function() {
 

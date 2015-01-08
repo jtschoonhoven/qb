@@ -1,6 +1,6 @@
 var mocha       = require('mocha')
 ,   expect      = require('chai').expect
-,   Qb          = require('../qb');
+,   Qb          = require('../lib');
 
 describe('select.test.js', function() {
 
