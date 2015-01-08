@@ -250,7 +250,7 @@ function QuerySpec(spec) {
 	if (!_.isArray(this.joins))     { this.joins     = [this.joins]; }
 	if (!_.isArray(this.selects))   { this.selects   = [this.selects]; }
 	if (!_.isArray(this.wheres))    { this.wheres    = [this.wheres]; }
-	if (!_.isArray(this.groupBys))  { this.groupBys  = [this.groupBts]; }
+	if (!_.isArray(this.groupBys))  { this.groupBys  = [this.groupBys]; }
 
 	// Syntactic sugar allows first join to have special key "from".
 	if (spec.from) { this.joins.unshift(spec.from); }
@@ -414,6 +414,7 @@ function SelectSpec(select, spec) {
 
 	// Convert string properties to objects.
 	if (_.isString(select)) { select = { name: select }; }
+	if (_.isString(select.function)) { select.functions = [select.function]; }
 	if (_.isString(select.functions)) { select.functions = [select.functions]; }
 	if (_.isString(select.args)) { select.args = [select.args]; }
 
