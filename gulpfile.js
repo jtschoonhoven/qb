@@ -1,5 +1,5 @@
 
-var Qb          = require('./qb')
+var Qb          = require('./lib')
 ,   fs          = require('fs')
 ,   gulp        = require('gulp')
 ,   mocha       = require('gulp-mocha')
@@ -14,7 +14,7 @@ var Qb          = require('./qb')
 
 // Lint.
 gulp.task('lint', function() {
-  return gulp.src(['qb.js'])
+  return gulp.src(['./lib/*.js'])
     .pipe(jshint({}))
     .pipe(jshint.reporter(stylish));
 });

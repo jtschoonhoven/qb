@@ -1,6 +1,7 @@
 [
  {
   "name": "users",
+  "as": "Users",
   "columns": [
    {
     "name": "id",
@@ -30,6 +31,7 @@
  },
  {
   "name": "posts",
+  "as": "Blog Posts",
   "columns": [
    {
     "name": "id",
@@ -51,6 +53,7 @@
   "joins": [
    {
     "name": "users",
+    "as": "Author",
     "source_key": "user_id",
     "target_key": "id"
    },
@@ -62,16 +65,18 @@
    {
     "name": "tags",
     "source_key": "id",
-    "target_key": "id"
+    "target_key": "id",
+    "via": "posts_tags"
    }
   ]
  },
  {
   "name": "comments",
+  "as": "Comments",
   "columns": [
    {
     "name": "id",
-    "as": "Signature ID"
+    "as": "Comment ID"
    },
    {
     "name": "post_id",
@@ -105,6 +110,7 @@
  },
  {
   "name": "tags",
+  "as": "Tags",
   "columns": [
    {
     "name": "id",
@@ -118,13 +124,17 @@
   "joins": [
    {
     "name": "users",
+    "as": "Related authors",
     "source_key": "id",
-    "target_key": "id"
+    "target_key": "id",
+    "via": "posts_tags"
    },
    {
     "name": "posts",
+    "as": "Related posts",
     "source_key": "id",
-    "target_key": "id"
+    "target_key": "id",
+    "via": "posts_tags"
    }
   ]
  }
