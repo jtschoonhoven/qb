@@ -9,7 +9,7 @@ Query Builder
 Query Builder gets you, man.
 ----------------------------
 
-When you create a `new Qb()` you pass in an object that defines your tables and how they relate to each other. And because QB "gets" you, it handles the boring stuff. So that you can focus on *you*.
+When you create a `new Qb()` you pass in an object that defines your tables and how they relate. And because QB "gets" you, it handles the boring stuff. So that you can focus on *you*.
 
 Instead of method chaining something like,
 ```javascript

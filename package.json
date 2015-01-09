@@ -1,5 +1,5 @@
 {
-  "name": "qb",
+  "name": "sql-query-builder",
   "version": "0.1.0",
   "description": "Define models and associations and let your QB write your SQL.",
   "main": "lib/",
@@ -12,6 +12,7 @@
   },
   "keywords": [
     "query",
+    "BI",
     "query builder",
     "sql builder",
     "sql",
