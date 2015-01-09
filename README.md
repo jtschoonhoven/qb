@@ -2,7 +2,7 @@ Query Builder
 =============
 
 *Yet another Javascript SQL generator for Node.*  
-*Built atop [brianc/node-sql](https://github.com/brianc/node-sql), thus supports postgres, mysql, and sqlite.*
+*Built atop [brianc/node-sql](https://github.com/brianc/node-sql), thus supports postgres, mysql, and sqlite.*  
 *[Here is an example UI](http://jtschoonhoven.github.io/qb/) for a BI app using Qb as an API.*
 
 
