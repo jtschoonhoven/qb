@@ -37,13 +37,6 @@
 	// DOM to the model. "Selection" is a jquery selector
 	// for a row of inputs/selects.
 
-	// var selection = {
-	// 	value  : $(this).val(),
-	// 	label  : this.options ? $(this.options[this.selectedIndex]).text() : undefined,
-	// 	joinId : this.options ? $(this.options[this.selectedIndex]).data('join-id') : undefined,
-	// 	group  : this.options ? $(this.options[this.selectedIndex]).closest('optgroup').prop('label') : undefined
-	// };
-
 	Join.prototype.setAttributes = function(selection) {
 		this.set({
 			name   : $(selection[0]).val(),
@@ -101,8 +94,8 @@
 	};
 
 
+	// Check that selected field exists in schema.
 	Select.prototype.validate = function(attr) {
-		// Check that selected field exists in schema.
 		var join      = qb.joinSet.collection.get(attr.joinId);
 		var joinTable = tables.findWhere({ name: join ? join.get('name') : false });
 		var columns   = joinTable ? joinTable.get('columns') : [];
@@ -111,8 +104,8 @@
 	};
 
 
+	// Check that field exists in schema.
 	Where.prototype.validate = function(attr) {
-		// Check that field exists in schema.
 		var join      = qb.joinSet.collection.get(attr.field.joinId);
 		var joinTable = tables.findWhere({ name: join ? join.get('name') : false });
 		var columns   = joinTable ? joinTable.get('columns') : [];
@@ -182,7 +175,6 @@
 		}
 
 		if (this.parent) {
-			console.log(this.parent)
 			var index = this.parent.childViews.indexOf(this);
 			this.parent.childViews.splice(index, 1);
 		}
