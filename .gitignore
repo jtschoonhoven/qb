@@ -13,6 +13,3 @@ node_modules
 vendor
 fonts
 bower_components
-
-# Generated files
-bundle.js
