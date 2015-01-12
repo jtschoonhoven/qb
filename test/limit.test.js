@@ -5,7 +5,7 @@ var mocha   = require('mocha')
 ,   Qb      = require('../lib');
 
 
-describe.only('limit.test.js', function() {
+describe('limit.test.js', function() {
 
 
 	describe('Add a LIMIT clause', function() {
