@@ -53,14 +53,12 @@ app.post('/api/build', function(req, res) {
 	var spec = JSON.parse(req.body.data);
   var status = 'success';
 
-  var result = qb.query(spec).formatted;
-  // try { var result = qb.query(spec); }
-  // catch(err) {
-  //   console.log(err);
-  //   console.log(spec);
-  //   status = 'error';
-  //   result = err.message;
-  // }
+  // var result = qb.query(spec).formatted;
+  try { var result = qb.query(spec); }
+  catch(err) {
+    status = 'error';
+    result = err.message;
+  }
 
   res.json({ status: status, result: result });
 });

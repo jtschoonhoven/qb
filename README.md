@@ -29,6 +29,58 @@ Anything you leave out of the object will be filled in with smart defaults based
 
 
 
+Examples
+--------
+
+See [examples.js](https://github.com/jtschoonhoven/qb/blob/master/examples.js) to get started or dive into the [test directory](https://github.com/jtschoonhoven/qb/tree/master/test) for something more detailed. Here's an abbreviated reference:
+
+```javascript
+var definitions = require('./example-definitions');
+var qb = new Qb(definitions, 'postgres');
+var spec, query;
+
+// SELECT a single field.
+spec  = { select: 'id', from: 'users' };
+query = qb.query(spec);
+
+// SELECT "Users"."id" AS "User ID" 
+// FROM "users" AS "Users"
+
+// Use the COUNT function.
+spec  = { select: { name: 'id', functions: 'count' }, from: 'posts' };
+query = qb.query(spec);
+
+// SELECT COUNT("Blog Posts"."id") AS "Post ID_count" 
+// FROM "posts" AS "Blog Posts"
+
+// JOIN another table.
+spec  = { select: 'id', from: 'users', join: 'posts' };
+query = qb.query(spec);
+
+// SELECT "Users"."id" AS "User ID" 
+// FROM "users" AS "Users" 
+// INNER JOIN "posts" AS "Blog Posts" 
+// ON ("Users"."id" = "Blog Posts"."user_id")
+
+// Filter with a WHERE clause.
+spec  = { select: 'id', from: 'users', where: { field: 'id', match: { value: 1 } }};
+query = qb.query(spec);
+
+// SELECT "Users"."id" AS "User ID" 
+// FROM "users" AS "Users" 
+// WHERE ("Users"."id" = 1)
+
+// Aggregate with a GROUP BY clause.
+spec  = { select: { name: 'id', groupBy: true }, from: 'users' };
+query = qb.query(spec);
+
+// SELECT "Users"."id" AS "User ID"
+// FROM "users" AS "Users"
+// GROUP BY "Users"."id"
+```
+
+
+
 Query Builder for BI Applications
 ---------------------------------
 
@@ -48,13 +100,6 @@ Once you have defined a schema, Qb knows that "orders" is joined to "users" by t
 
 **Qb is secure**  
 You can define a table to Qb that is hidden to users. So you can still join through "unhashed_passwords" without revealing the table in qb.schema. And of course query output is parameterized.
-
-
-
-Examples
---------
-
-...are forthcoming. In the meantime, the tests directory is chock full of example code.
 
 
 
