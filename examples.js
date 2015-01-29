@@ -138,7 +138,7 @@ console.log(query.formatted + '\n');
 // Filter against a constant.
 var spec  = { select: 'id', from: 'users', where: { field: 'id', match: { value: 1 } } };
 var query = qb.query(spec);
-console.log(query.formatted);
+console.log(query.formatted + '\n');
 
 // SELECT "Users"."id" AS "User ID" 
 // FROM "users" AS "Users" 
