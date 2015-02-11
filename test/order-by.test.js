@@ -44,16 +44,23 @@ describe('order-by.test.js', function() {
 
 	describe('Add an ORDER BY clause from spec.select', function() {
 
-		it('sort ascending', function() {
+		it('sorted ascending', function() {
 			var spec  = { select: { name: 'id', orderBy: 'asc' }, from: 'users' };
 			var sql   = 'SELECT "Users"."id" FROM "users" AS "Users" ORDER BY "Users"."id"';
 			var query = qb.query(spec);
 			expect(query.string).to.equal(sql);
 		});
 
-		it('sort descending', function() {
+		it('sorted descending', function() {
 			var spec  = { select: { name: 'id', orderBy: 'desc' }, from: 'users' };
 			var sql   = 'SELECT "Users"."id" FROM "users" AS "Users" ORDER BY "Users"."id" DESC';
+			var query = qb.query(spec);
+			expect(query.string).to.equal(sql);
+		});
+
+		it('sort ascending and descending', function() {
+			var spec  = { select: [{ name: 'id', orderBy: 'desc' }, { name: 'name', orderBy: 'asc' }], from: 'users' };
+			var sql   = 'SELECT "Users"."id", "Users"."name" FROM "users" AS "Users" ORDER BY "Users"."id" DESC, "Users"."name"';
 			var query = qb.query(spec);
 			expect(query.string).to.equal(sql);
 		});

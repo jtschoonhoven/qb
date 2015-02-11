@@ -53,4 +53,23 @@ describe('group-by.test.js', function() {
 
 	});
 
+
+	describe('Use a GROUP BY in combination with', function() {
+
+		it('the DATE function', function() {
+			var spec  = { select: [{ name: 'name', groupBy: true, functions: 'date' }], from: 'users' };
+			var sql   = 'SELECT DATE("Users"."name") AS "name_date" FROM "users" AS "Users" GROUP BY DATE("Users"."name")';
+			var query = qb.query(spec);
+			expect(query.string).to.equal(sql);
+		});
+
+		it('an ORDER BY clause', function() {
+			var spec  = { select: [{ name: 'name', groupBy: true, orderBy: 'desc' }], from: 'users' };
+			var sql   = 'SELECT "Users"."name" FROM "users" AS "Users" GROUP BY "Users"."name" ORDER BY "Users"."name" DESC';
+			var query = qb.query(spec);
+			expect(query.string).to.equal(sql);
+		});
+
+	});
+
 });
