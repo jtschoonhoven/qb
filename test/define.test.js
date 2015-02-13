@@ -219,6 +219,31 @@ describe('define.test.js', function() {
       expect(query.string).to.equal(sql);
     });
 
+  });
+
+
+  describe('Define the same table twice using different parameters', function() {
+
+    var def = {
+      users: { as: 'Users', columns: ['id'], joins: [{ name: 'active_users' }] },
+      active_users: { as: 'Actives', name: 'users', columns: ['id', 'deleted_at'], where: { field: 'deleted_at', op: 'isNull' }}
+    };
+
+    var qb = new Qb(def);
+
+    it('where defined key is different from table name', function() {
+      var spec  = { select: 'id', from: 'active_users' };
+      var query = qb.query(spec);
+      var sql   = 'SELECT "Actives"."id" FROM "users" AS "Actives" WHERE ("Actives"."deleted_at" IS NULL)';
+      expect(query.string).to.equal(sql);
+    });
+
+    it('joined on themselves', function() {
+      var spec  = { select: 'id', from: 'users', join: 'active_users' };
+      var query = qb.query(spec);
+      var sql   = 'SELECT "Users"."id" FROM "users" AS "Users" INNER JOIN "users" AS "Actives" ON ("Users"."id" = "Actives"."id") WHERE ("Actives"."deleted_at" IS NULL)';
+      expect(query.string).to.equal(sql);
+    });
 
   });
 
