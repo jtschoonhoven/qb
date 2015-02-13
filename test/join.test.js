@@ -132,6 +132,33 @@ describe('join.test.js', function() {
   });
 
 
+  describe('Select a column from a joined table', function() {
+
+    var def   = { 
+      users: { columns: ['id', 'postId'], joins: { posts: { source_key: 'postId' } } }, 
+      posts: { columns: ['id'] }
+    };
+
+    var qb = new Qb(def);
+
+    it('by ID', function() {
+      var spec  = { select: { name: 'id', joinId: 1 }, from: 'users', join: { name: 'posts', id: 1 } };
+      var sql   = 'SELECT "posts"."id" FROM "users" INNER JOIN "posts" ON ("users"."postId" = "posts"."id")';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+    // NOTE: this fails when joining a table on itself!
+    it('by table name', function() {
+      var spec  = { select: { name: 'id', on: 'posts' }, from: 'users', join: 'posts' };
+      var sql   = 'SELECT "posts"."id" FROM "users" INNER JOIN "posts" ON ("users"."postId" = "posts"."id")';
+      var query = qb.query(spec);
+      expect(query.string).to.equal(sql);
+    });
+
+  });
+
+
   describe('Join via intermediate tables', function() {
 
       var def = { 

@@ -166,4 +166,60 @@ describe('define.test.js', function() {
 
   });
 
+
+  describe('Define a table that always uses a WHERE clause', function() {
+
+    var def = { 
+      users: { 
+        columns: ['id', { name: 'deleted_at', hidden: true }], 
+        where: { field: 'deleted_at', op: 'isNull' },
+        joins: [{ name: 'posts', target_key: 'user_id'}]
+      },
+
+      posts: {
+        columns: ['id', 'user_id', 'status', 'tag_id'],
+        where: { field: 'status', op: 'gt', match: { value: 0 }},
+        joins: [{ name: 'users', source_key: 'user_id'}, { name: 'tags', source_key: 'tag_id' }]
+      },
+
+      tags: {
+        columns: ['id', 'name'],
+        where: [{ field: 'name', op: 'isNotNull' }, { field: 'name', op: 'notEqual', match: { value: 'null' } }],
+        joins: [{ name: 'posts', target_key: 'post_id'}]
+      }
+    };
+
+    var qb = new Qb(def);
+
+    it('with a single filter', function() {
+      var spec  = { select: 'id', from: 'posts' };
+      var query = qb.query(spec);
+      var sql   = 'SELECT "posts"."id" FROM "posts" WHERE ("posts"."status" > 0)';
+      expect(query.string).to.equal(sql);
+    });
+
+    it('with multiple filters', function() {
+      var spec  = { select: 'name', from: 'tags' };
+      var query = qb.query(spec);
+      var sql   = 'SELECT "tags"."name" FROM "tags" WHERE (("tags"."name" IS NOT NULL) AND ("tags"."name" <> \'null\'))';
+      expect(query.string).to.equal(sql);
+    });
+
+    it('on a hidden column', function() {
+      var spec  = { select: 'id', from: 'users' };
+      var query = qb.query(spec);
+      var sql   = 'SELECT "users"."id" FROM "users" WHERE ("users"."deleted_at" IS NULL)';
+      expect(query.string).to.equal(sql);
+    });
+
+    it('across joins', function() {
+      var spec  = { select: 'id', from: 'users', join: 'posts' };
+      var query = qb.query(spec);
+      var sql   = 'SELECT "users"."id" FROM "users" INNER JOIN "posts" ON ("users"."id" = "posts"."user_id") WHERE (("users"."deleted_at" IS NULL) AND ("posts"."status" > 0))';
+      expect(query.string).to.equal(sql);
+    });
+
+
+  });
+
 });

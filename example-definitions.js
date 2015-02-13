@@ -11,7 +11,7 @@ module.exports = {
     columns: { 
       id: "User ID", 
       name: "Full name", 
-      created_at: "Join date" 
+      created_at: "Join date"
     },
     joins: {
       posts: { target_key: "user_id" }, // "target_key" is the key used to join the foreign table.
@@ -25,7 +25,8 @@ module.exports = {
       id: "Post ID",
       user_id: "Author",
       text: "Text",
-      created_at: "Post Date"
+      created_at: "Post Date",
+      deleted_at: { hidden: true }
     },
     joins: {
       users: { source_key: "user_id", as: "Author" }, // "source_key" is the key used to join this table.

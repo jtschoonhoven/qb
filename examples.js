@@ -111,7 +111,7 @@ console.log(query.formatted + '\n');
 
 
 // Select columns from two tables.
-var spec  = { select: [{ name: 'id', joinId: 'u' }, { name: 'id', joinId: 'p' }], from: { name: 'users', id: 'u' }, join: { name: 'posts', id: 'p' } };
+var spec  = { select: ['id', { name: 'id', on: 'posts' }], from: 'users', join: 'posts' };
 var query = qb.query(spec);
 console.log(query.formatted + '\n');
 

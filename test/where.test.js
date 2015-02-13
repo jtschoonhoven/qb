@@ -84,6 +84,13 @@ describe('where.test.js', function() {
       expect(query.string).to.equal(sql);
     });
 
+    it('with a binary conditional', function() {
+      var spec  = { select: 'id', from: 'users', where: { field: 'id', op: 'isNotNull' }};
+      var query = qb.query(spec);
+      var sql   = 'SELECT "users"."id" FROM "users" WHERE ("users"."id" IS NOT NULL)';
+      expect(query.string).to.equal(sql);
+    });
+
   });
 
 
